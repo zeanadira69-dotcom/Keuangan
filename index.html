@@ -78,8 +78,8 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 </header>
 
 <div class="segmen" role="group" aria-label="Jenis transaksi">
-<button type="button" id="segKeluar" class="aktif" onclick="setJenis('pengeluaran')">Pengeluaran</button>
-<button type="button" id="segMasuk" onclick="setJenis('pemasukan')">Pemasukan</button>
+<button type="button" id="segKeluar" class="aktif" onclick="setJenis('pengeluaran')"><span class="titik keluar"></span>Pengeluaran</button>
+<button type="button" id="segMasuk" onclick="setJenis('pemasukan')"><span class="titik masuk"></span>Pemasukan</button>
 </div>
 
 <input type="hidden" id="jenis" value="pengeluaran">
@@ -105,7 +105,9 @@ placeholder="0">
 <label for="catatan">Catatan</label>
 <input type="text" id="catatan" placeholder="Opsional, misalnya beli bensin">
 
-<button class="tombol" onclick="tambahTransaksi()">Simpan transaksi</button>
+<div id="cekCatat" class="cek-catat keluar" aria-live="polite"></div>
+
+<button class="tombol" id="tombolSimpan" onclick="tambahTransaksi()">Simpan pengeluaran</button>
 
 </section>
 
@@ -119,8 +121,8 @@ placeholder="0">
 
 <div class="segmen" role="group" aria-label="Filter jenis">
 <button type="button" id="fSemua" class="aktif" onclick="setFilterJenis('semua')">Semua</button>
-<button type="button" id="fKeluar" onclick="setFilterJenis('pengeluaran')">Pengeluaran</button>
-<button type="button" id="fMasuk" onclick="setFilterJenis('pemasukan')">Pemasukan</button>
+<button type="button" id="fKeluar" onclick="setFilterJenis('pengeluaran')"><span class="titik keluar"></span>Pengeluaran</button>
+<button type="button" id="fMasuk" onclick="setFilterJenis('pemasukan')"><span class="titik masuk"></span>Pemasukan</button>
 </div>
 
 <input type="hidden" id="filterJenis" value="semua">
@@ -151,17 +153,6 @@ placeholder="0">
 </header>
 
 <div id="ringkasanAset" class="hero"></div>
-
-<section class="blok">
-<div class="blok-kepala">
-<h2>Harga terkini</h2>
-<button class="tombol-teks" onclick="perbaruiHarga(true)">
-<i class="fa-solid fa-rotate"></i> Perbarui
-</button>
-</div>
-<div id="kartuHarga"></div>
-<div id="statusHarga" class="status-harga"></div>
-</section>
 
 <details id="formAset" class="lipat">
 <summary>Tambah aset</summary>
@@ -204,9 +195,46 @@ placeholder="Dipakai untuk hitung untung/rugi">
 
 <section class="blok">
 <div class="blok-kepala">
+<h2>Komposisi kekayaan</h2>
+</div>
+<div id="grafikKomposisi"></div>
+</section>
+
+<section class="blok">
+<div class="blok-kepala">
+<h2>Perkembangan kekayaan</h2>
+<div class="segmen kecil" role="group" aria-label="Periode grafik">
+<button type="button" id="p7" onclick="setPeriode(7)">7 hari</button>
+<button type="button" id="p30" class="aktif" onclick="setPeriode(30)">30 hari</button>
+<button type="button" id="p0" onclick="setPeriode(0)">Semua</button>
+</div>
+</div>
+<div id="grafikGaris"></div>
+</section>
+
+<section class="blok" id="blokModal">
+<div class="blok-kepala">
+<h2>Modal dan nilai sekarang</h2>
+</div>
+<div id="grafikModal"></div>
+</section>
+
+<section class="blok">
+<div class="blok-kepala">
 <h2>Aset saya</h2>
 </div>
 <div id="daftarAset"></div>
+</section>
+
+<section class="blok">
+<div class="blok-kepala">
+<h2>Harga terkini</h2>
+<button class="tombol-teks" onclick="perbaruiHarga(true)">
+<i class="fa-solid fa-rotate"></i> Perbarui
+</button>
+</div>
+<div id="kartuHarga"></div>
+<div id="statusHarga" class="status-harga"></div>
 </section>
 
 </section>
@@ -264,7 +292,7 @@ hidden>
 </section>
 
 <p class="footer-info">
-Catatan Keuangan v3.4<br>
+Catatan Keuangan v3.5<br>
 Dibuat oleh Edy Putra. Semoga bermanfaat 🤙
 </p>
 
@@ -273,6 +301,7 @@ Dibuat oleh Edy Putra. Semoga bermanfaat 🤙
 </main>
 
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="tip" role="tooltip"></div>
 
 <!-- NAVBAR -->
 

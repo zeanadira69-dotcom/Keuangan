@@ -192,13 +192,39 @@ function setJenis(jenis) {
   document.getElementById("segKeluar").classList.toggle("aktif", jenis === "pengeluaran");
   document.getElementById("segMasuk").classList.toggle("aktif", jenis === "pemasukan");
 
+  document.getElementById("nominal").closest(".nominal-wrap").className =
+    "nominal-wrap " + (jenis === "pemasukan" ? "mode-masuk" : "mode-keluar");
+
+  document.getElementById("tombolSimpan").textContent =
+    jenis === "pemasukan" ? "Simpan pemasukan" : "Simpan pengeluaran";
+
   document.getElementById("kategori").value = KATEGORI[jenis][0];
   renderChipKategori();
+  perbaruiCek();
 }
 
 function pilihKategori(nama) {
   document.getElementById("kategori").value = nama;
   renderChipKategori();
+  perbaruiCek();
+}
+
+function perbaruiCek() {
+  const el = document.getElementById("cekCatat");
+  if (!el) return;
+
+  const jenis = document.getElementById("jenis").value;
+  const kategori = document.getElementById("kategori").value;
+  const tanggal = document.getElementById("tanggal").value;
+  const nominal = Number(document.getElementById("nominal").value);
+  const nama = jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran";
+
+  el.className = "cek-catat " + (jenis === "pemasukan" ? "masuk" : "keluar");
+
+  el.innerHTML = nominal > 0
+    ? `Akan dicatat: <b>${nama} ${rupiah(nominal)}</b> untuk <b>${escapeHtml(kategori)}</b>${
+        tanggal ? ", " + labelTanggal(tanggal) : ""}`
+    : `Kamu sedang mencatat <b>${nama.toLowerCase()}</b>. Isi nominal untuk melanjutkan.`;
 }
 
 function renderChipKategori() {
@@ -212,6 +238,7 @@ function renderChipKategori() {
         aria-pressed="${k === dipilih}"
         onclick="pilihKategori('${k}')">
         <i class="fa-solid fa-${ikon(k)}"></i> ${k}
+        ${k === dipilih ? '<i class="fa-solid fa-check centang"></i>' : ""}
       </button>
     `)
     .join("");
@@ -248,8 +275,9 @@ function tambahTransaksi() {
   document.getElementById("nominal").value = "";
   document.getElementById("catatan").value = "";
 
+  perbaruiCek();
   renderDashboard();
-  toast("Transaksi tersimpan");
+  toast((jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran") + " tersimpan");
 }
 
 /* ===========================
@@ -598,11 +626,12 @@ function renderAnggaran() {
 function backupData() {
   const paket = {
     app: "catatan-keuangan",
-    versi: "3.4",
+    versi: "3.5",
     dibuat: new Date().toISOString(),
     pengeluaran: data,
     anggaran: anggaran,
-    aset: typeof aset !== "undefined" ? aset : []
+    aset: typeof aset !== "undefined" ? aset : [],
+    snapshot: typeof snapshot !== "undefined" ? snapshot : []
   };
 
   const blob = new Blob(
@@ -688,6 +717,10 @@ function restoreData(event) {
         pulihkanAset(Array.isArray(paket.aset) ? paket.aset : []);
       }
 
+      if (typeof pulihkanSnapshot === "function") {
+        pulihkanSnapshot(Array.isArray(paket.snapshot) ? paket.snapshot : []);
+      }
+
       renderFormAnggaran();
       renderDashboard();
       filterRiwayat();
@@ -718,6 +751,9 @@ function restoreData(event) {
   document.getElementById("tanggal").value = hariIni;
   document.getElementById("tanggalAwal").value = hariIni.substring(0, 8) + "01";
   document.getElementById("tanggalAkhir").value = hariIni;
+
+  document.getElementById("nominal").addEventListener("input", perbaruiCek);
+  document.getElementById("tanggal").addEventListener("change", perbaruiCek);
 
   setJenis("pengeluaran");
   renderFormAnggaran();
