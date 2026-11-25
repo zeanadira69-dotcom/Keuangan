@@ -4,14 +4,18 @@
 <head>
 
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <title>Catatan Keuangan</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e88e5">
+<meta name="theme-color" content="#10261D">
 <link rel="stylesheet" href="style.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+rel="stylesheet"
+href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 
 <link
 rel="stylesheet"
@@ -21,141 +25,155 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 <body>
 
-<!-- DASHBOARD -->
+<main>
 
-<div id="dashboardPage" class="page active">
+<!-- HOME -->
 
-<h1>💰 Catatan Keuangan</h1>
+<section id="dashboardPage" class="page active">
 
-<div class="card">
-<h3>💵 Saldo Saat Ini</h3>
-<div id="saldoSaatIni" class="nominal-besar">Rp 0</div>
+<header class="judul-halaman">
+<h1>Catatan Keuangan</h1>
+<p id="tanggalHariIni"></p>
+</header>
+
+<div class="hero">
+<p class="hero-label">Saldo saat ini</p>
+<div id="saldoSaatIni" class="hero-angka">Rp 0</div>
+
+<div class="hero-split">
+<div>
+<span>Pemasukan bulan ini</span>
+<b id="pemasukanBulan">Rp 0</b>
+</div>
+<div>
+<span>Pengeluaran bulan ini</span>
+<b id="pengeluaranBulan">Rp 0</b>
+</div>
+</div>
 </div>
 
-<div class="card">
-<h3>💰 Pemasukan Bulan Ini</h3>
-<div id="pemasukanBulan" class="nominal-besar">Rp 0</div>
+<section class="blok">
+<div class="blok-kepala">
+<h2>Anggaran bulan ini</h2>
 </div>
+<div id="anggaranBulan"></div>
+</section>
 
-<div class="card">
-<h3>💸 Pengeluaran Hari Ini</h3>
-<div id="pengeluaranHari" class="nominal-besar">Rp 0</div>
+<section class="blok">
+<div class="blok-kepala">
+<h2>Hari ini</h2>
+<span id="pengeluaranHari" class="angka-kepala">Keluar Rp 0</span>
 </div>
+<div id="riwayatHariIni"></div>
+</section>
 
-<div class="card">
-<h3>📊 Total Pengeluaran Bulan Ini</h3>
-<div id="pengeluaranBulan" class="nominal-besar">Rp 0</div>
-</div>
-
-<div class="card">
-<h3>🎯 Anggaran Bulan Ini</h3>
-<div id="anggaranBulan">Belum ada anggaran. Atur di menu Setelan.</div>
-</div>
-
-<div class="card">
-<h3>📝 Riwayat Hari Ini</h3>
-<div id="riwayatHariIni">Belum ada transaksi</div>
-</div>
-
-</div>
+</section>
 
 <!-- TAMBAH -->
 
-<div id="tambahPage" class="page">
+<section id="tambahPage" class="page">
 
-<h1>➕ Tambah Transaksi</h1>
+<header class="judul-halaman">
+<h1>Catat transaksi</h1>
+</header>
 
-<div class="card">
+<div class="segmen" role="group" aria-label="Jenis transaksi">
+<button type="button" id="segKeluar" class="aktif" onclick="setJenis('pengeluaran')">Pengeluaran</button>
+<button type="button" id="segMasuk" onclick="setJenis('pemasukan')">Pemasukan</button>
+</div>
 
-<label for="jenis">Jenis Transaksi</label>
-
-<select id="jenis">
-<option value="pengeluaran">💸 Pengeluaran</option>
-<option value="pemasukan">💰 Pemasukan</option>
-</select>
-
-<label for="tanggal">Tanggal</label>
-<input type="date" id="tanggal">
-
-<label for="kategori">Kategori</label>
-<select id="kategori"></select>
+<input type="hidden" id="jenis" value="pengeluaran">
 
 <label for="nominal">Nominal</label>
+<div class="nominal-wrap">
+<span>Rp</span>
 <input
 type="number"
 id="nominal"
 inputmode="numeric"
 min="1"
-placeholder="Masukkan nominal">
+placeholder="0">
+</div>
+
+<p class="label">Kategori</p>
+<div id="pilihKategori" class="chips"></div>
+<input type="hidden" id="kategori">
+
+<label for="tanggal">Tanggal</label>
+<input type="date" id="tanggal">
 
 <label for="catatan">Catatan</label>
-<input
-type="text"
-id="catatan"
-placeholder="Catatan transaksi">
+<input type="text" id="catatan" placeholder="Opsional, misalnya beli bensin">
 
-<button onclick="tambahTransaksi()">💾 Simpan</button>
+<button class="tombol" onclick="tambahTransaksi()">Simpan transaksi</button>
 
-</div>
-
-</div>
+</section>
 
 <!-- RIWAYAT -->
 
-<div id="riwayatPage" class="page">
+<section id="riwayatPage" class="page">
 
-<h1>📋 Riwayat</h1>
+<header class="judul-halaman">
+<h1>Riwayat</h1>
+</header>
 
-<label for="filterJenis">Jenis Transaksi</label>
+<div class="segmen" role="group" aria-label="Filter jenis">
+<button type="button" id="fSemua" class="aktif" onclick="setFilterJenis('semua')">Semua</button>
+<button type="button" id="fKeluar" onclick="setFilterJenis('pengeluaran')">Pengeluaran</button>
+<button type="button" id="fMasuk" onclick="setFilterJenis('pemasukan')">Pemasukan</button>
+</div>
 
-<select id="filterJenis">
-<option value="semua">📋 Semua</option>
-<option value="pengeluaran">💸 Pengeluaran</option>
-<option value="pemasukan">💰 Pemasukan</option>
-</select>
+<input type="hidden" id="filterJenis" value="semua">
 
-<label for="tanggalAwal">Tanggal Awal</label>
-<input type="date" id="tanggalAwal">
-
-<label for="tanggalAkhir">Tanggal Akhir</label>
-<input type="date" id="tanggalAkhir">
-
-<button onclick="filterRiwayat()">Tampilkan</button>
-
-<br><br>
+<div class="dua-kolom">
+<div>
+<label for="tanggalAwal">Dari</label>
+<input type="date" id="tanggalAwal" onchange="filterRiwayat()">
+</div>
+<div>
+<label for="tanggalAkhir">Sampai</label>
+<input type="date" id="tanggalAkhir" onchange="filterRiwayat()">
+</div>
+</div>
 
 <div id="ringkasanPeriode"></div>
-
 <div id="hasilRiwayat"></div>
 
-</div>
+</section>
 
 <!-- ASET -->
 
-<div id="asetPage" class="page">
+<section id="asetPage" class="page">
 
-<h1>📈 Aset</h1>
+<header class="judul-halaman">
+<h1>Aset</h1>
+<p>Emas dan crypto yang kamu simpan</p>
+</header>
 
-<div class="card">
-<h3>🏦 Total Kekayaan</h3>
-<div id="ringkasanAset"></div>
+<div id="ringkasanAset" class="hero"></div>
+
+<section class="blok">
+<div class="blok-kepala">
+<h2>Harga terkini</h2>
+<button class="tombol-teks" onclick="perbaruiHarga(true)">
+<i class="fa-solid fa-rotate"></i> Perbarui
+</button>
 </div>
-
-<div class="card">
-<h3>💹 Harga Terkini</h3>
 <div id="kartuHarga"></div>
 <div id="statusHarga" class="status-harga"></div>
-<button onclick="perbaruiHarga(true)">🔄 Perbarui Harga</button>
+</section>
+
+<details id="formAset" class="lipat">
+<summary>Tambah aset</summary>
+
+<div class="lipat-isi">
+
+<div class="segmen" role="group" aria-label="Jenis aset">
+<button type="button" id="segEmas" class="aktif" onclick="setTipeAset('emas')">Emas</button>
+<button type="button" id="segCrypto" onclick="setTipeAset('crypto')">Crypto</button>
 </div>
 
-<div class="card">
-<h3>➕ Tambah Aset</h3>
-
-<label for="tipeAset">Jenis Aset</label>
-<select id="tipeAset" onchange="ubahTipeAset()">
-<option value="emas">🥇 Emas</option>
-<option value="crypto">🪙 Crypto</option>
-</select>
+<input type="hidden" id="tipeAset" value="emas">
 
 <div id="barisKoin">
 <label for="koinAset">Koin</label>
@@ -171,94 +189,108 @@ min="0"
 step="any"
 placeholder="Contoh: 2.5">
 
-<label for="modalAset">Modal beli total (Rp) — opsional</label>
+<label for="modalAset">Modal beli total (Rp), boleh dikosongkan</label>
 <input
 type="number"
 id="modalAset"
 inputmode="numeric"
 min="0"
-placeholder="Untuk hitung untung/rugi">
+placeholder="Dipakai untuk hitung untung/rugi">
 
-<button onclick="tambahAset()">💾 Simpan Aset</button>
+<button class="tombol" onclick="tambahAset()">Simpan aset</button>
+
 </div>
+</details>
 
-<h3 class="judul-seksi">Aset Saya</h3>
+<section class="blok">
+<div class="blok-kepala">
+<h2>Aset saya</h2>
+</div>
 <div id="daftarAset"></div>
+</section>
 
-</div>
+</section>
 
 <!-- SETELAN -->
 
-<div id="setelanPage" class="page">
+<section id="setelanPage" class="page">
 
-<h1>⚙️ Setelan</h1>
+<header class="judul-halaman">
+<h1>Setelan</h1>
+</header>
 
-<div class="card">
-
-<h3>Versi Aplikasi</h3>
-<p>v3.3</p>
-
-<hr>
-
-<h3>Penyimpanan</h3>
-<p>Data disimpan di perangkat masing-masing</p>
-
-<hr>
-
-<button onclick="exportExcel()">📊 Export Excel</button>
-
-<hr>
-
-<h3>🎯 Anggaran Bulanan</h3>
+<section class="blok">
+<div class="blok-kepala">
+<h2>Anggaran bulanan</h2>
+</div>
+<p class="catatan-kecil">Isi batas pengeluaran per kategori. Kosongkan kalau tidak perlu batas.</p>
 <div id="formAnggaran"></div>
-<button onclick="simpanFormAnggaran()">💾 Simpan Anggaran</button>
+<button class="tombol" onclick="simpanFormAnggaran()">Simpan anggaran</button>
+</section>
 
-<hr>
+<section class="blok">
+<div class="blok-kepala">
+<h2>Data</h2>
+</div>
+<p class="catatan-kecil">Data hanya tersimpan di HP ini. Download backup berkala supaya aman kalau HP hilang atau browser dibersihkan.</p>
 
-<h3>🛡️ Backup &amp; Restore</h3>
-<p>Data hanya ada di HP ini. Simpan backup berkala supaya aman kalau HP hilang atau browser dibersihkan.</p>
-<br>
-<button onclick="backupData()">⬇️ Download Backup (.json)</button>
-<br><br>
-<button onclick="document.getElementById('fileRestore').click()">⬆️ Restore dari Backup</button>
+<div class="tumpuk">
+<button class="tombol sekunder" onclick="backupData()">
+<i class="fa-solid fa-download"></i> Download backup (.json)
+</button>
+
+<button class="tombol sekunder" onclick="document.getElementById('fileRestore').click()">
+<i class="fa-solid fa-upload"></i> Pulihkan dari backup
+</button>
+
+<button class="tombol sekunder" onclick="exportExcel()">
+<i class="fa-solid fa-file-excel"></i> Export ke Excel
+</button>
+</div>
+
 <input
 type="file"
 id="fileRestore"
 accept="application/json,.json"
 onchange="restoreData(event)"
 hidden>
+</section>
 
-<hr>
-
-<button onclick="hapusSemuaData()" class="btn-merah">
-Hapus Semua Data
-</button>
-
-<div class="footer-info">
-Versi 3.3 • Developer by Edy Putra • Semoga bermanfaat 🤙
+<section class="blok">
+<div class="blok-kepala">
+<h2>Hapus data</h2>
 </div>
+<button class="tombol bahaya" onclick="hapusSemuaData()">Hapus semua transaksi</button>
+</section>
 
-</div>
+<p class="footer-info">
+Catatan Keuangan v3.4<br>
+Dibuat oleh Edy Putra. Semoga bermanfaat 🤙
+</p>
 
-</div>
+</section>
+
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 <!-- NAVBAR -->
 
-<div class="bottom-nav">
+<nav class="bottom-nav" aria-label="Menu utama">
 
 <button data-page="dashboardPage" class="active" onclick="showPage('dashboardPage')">
 <i class="fa-solid fa-house"></i>
 <span>Home</span>
 </button>
 
-<button data-page="tambahPage" onclick="showPage('tambahPage')">
-<i class="fa-solid fa-plus"></i>
-<span>Tambah</span>
-</button>
-
 <button data-page="riwayatPage" onclick="showPage('riwayatPage')">
 <i class="fa-solid fa-clock-rotate-left"></i>
 <span>Riwayat</span>
+</button>
+
+<button data-page="tambahPage" class="nav-tambah" onclick="showPage('tambahPage')">
+<span class="fab"><i class="fa-solid fa-plus"></i></span>
+<span>Catat</span>
 </button>
 
 <button data-page="asetPage" onclick="showPage('asetPage')">
@@ -271,7 +303,7 @@ Versi 3.3 • Developer by Edy Putra • Semoga bermanfaat 🤙
 <span>Setelan</span>
 </button>
 
-</div>
+</nav>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="app.js"></script>

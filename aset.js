@@ -76,7 +76,7 @@ function simpanAset() {
   try {
     localStorage.setItem(ASET_KEY, JSON.stringify(aset));
   } catch (e) {
-    alert("Gagal menyimpan aset.");
+    toast("Gagal menyimpan aset.");
   }
 }
 
@@ -172,7 +172,7 @@ async function perbaruiHarga(paksa) {
   if (paksa) {
     const sisa = JEDA_MANUAL - (Date.now() - terakhirManual);
     if (sisa > 0) {
-      alert(`Tunggu ${Math.ceil(sisa / 1000)} detik lagi sebelum memperbarui`);
+      toast(`Tunggu ${Math.ceil(sisa / 1000)} detik lagi sebelum memperbarui`);
       return;
     }
     terakhirManual = Date.now();
@@ -187,7 +187,7 @@ async function perbaruiHarga(paksa) {
   if (!perluKurs && !perluEmas && !perluCrypto) return;
 
   sedangMemuat = true;
-  aturStatus("⏳ Memperbarui harga...");
+  aturStatus("Memperbarui harga...");
 
   const gagal = [];
 
@@ -214,9 +214,11 @@ async function perbaruiHarga(paksa) {
 
   if (gagal.length) {
     aturStatus(
-      "⚠️ Gagal memperbarui: " + gagal.join(", ") +
+      "Gagal memperbarui: " + gagal.join(", ") +
       ". Menampilkan harga terakhir yang tersimpan (kalau ada)."
     );
+  } else {
+    aturStatus("");
   }
 }
 
@@ -264,51 +266,38 @@ function renderAset() {
   /* harga pasar */
   const barisHarga = [];
 
-  barisHarga.push(`
-    <div class="baris-harga">
-      <span>🥇 Emas / gram</span>
-      <b>${harga.emas ? rupiah(harga.emas.perGram) : "-"}</b>
+  const tambahHarga = (nama, nilai, waktu) => barisHarga.push(`
+    <div class="harga-baris">
+      <span>${nama}</span>
+      <b>${nilai ? rupiah(nilai) : "-"}</b>
     </div>
   `);
 
-  barisHarga.push(`
-    <div class="baris-harga">
-      <span>💵 1 USD</span>
-      <b>${harga.kurs ? rupiah(harga.kurs.nilai) : "-"}</b>
-    </div>
-  `);
+  tambahHarga("Emas per gram", harga.emas && harga.emas.perGram);
+  tambahHarga("1 USD", harga.kurs && harga.kurs.nilai);
 
   Object.keys(KOIN).forEach(id => {
-    const p = harga.crypto && harga.crypto.harga[id];
-
-    barisHarga.push(`
-      <div class="baris-harga">
-        <span>🪙 ${KOIN[id]}</span>
-        <b>${p ? rupiah(p) : "-"}</b>
-      </div>
-    `);
+    tambahHarga(KOIN[id], harga.crypto && harga.crypto.harga[id]);
   });
 
   kartuHarga.innerHTML = barisHarga.join("") + `
-    <small class="catatan-harga">
-      Emas: ${umur(harga.emas && harga.emas.waktu)} ·
-      Kurs: ${umur(harga.kurs && harga.kurs.waktu)} ·
-      Crypto: ${umur(harga.crypto && harga.crypto.waktu)}
-      <br>
-      Harga emas = spot internasional 24K, bukan harga Antam/toko.
-      Hanya perkiraan, bukan harga transaksi.
-    </small>
+    <p class="catatan-kecil" style="margin-top:12px">
+      Diperbarui: emas ${umur(harga.emas && harga.emas.waktu)},
+      kurs ${umur(harga.kurs && harga.kurs.waktu)},
+      crypto ${umur(harga.crypto && harga.crypto.waktu)}.
+      Harga emas adalah spot internasional 24K, bukan harga Antam atau toko.
+      Semua harga hanya perkiraan.
+    </p>
   `;
 
   /* kepemilikan */
   let totalAset = 0;
-  let totalModal = 0;
-  let adaModal = false;
 
   const baris = aset.map(item => {
     const satuan = hargaSatuan(item);
     const nilai = satuan === null ? null : satuan * item.jumlah;
-    const nama = item.tipe === "emas" ? "🥇 Emas" : "🪙 " + KOIN[item.koin];
+    const nama = item.tipe === "emas" ? "Emas" : KOIN[item.koin];
+    const ikonAset = item.tipe === "emas" ? "coins" : "bitcoin-sign";
     const satuanTeks = item.tipe === "emas" ? "gram" : "koin";
 
     if (nilai !== null) totalAset += nilai;
@@ -318,53 +307,60 @@ function renderAset() {
       const selisih = nilai - item.modal;
       const persen = (selisih / item.modal) * 100;
 
-      totalModal += item.modal;
-      adaModal = true;
-
       untungRugi = `
-        <div class="${selisih >= 0 ? "nominal-masuk" : "nominal-keluar"}">
-          ${selisih >= 0 ? "▲ Untung" : "▼ Rugi"} ${rupiah(Math.abs(selisih))}
-          (${persen >= 0 ? "+" : ""}${persen.toFixed(1)}%)
-        </div>
+        <small class="${selisih >= 0 ? "masuk" : "keluar"}">
+          ${selisih >= 0 ? "Untung" : "Rugi"} ${rupiah(Math.abs(selisih))}
+          (${persen >= 0 ? "+" : "−"}${Math.abs(persen).toFixed(1)}%)
+        </small>
       `;
     }
 
     return `
-      <div class="item">
-        <b>${nama}</b>
-        <div class="badge">${formatJumlah(item.jumlah)} ${satuanTeks}</div>
-        <br><br>
-        Nilai sekarang:
-        <b>${nilai === null ? "harga belum tersedia" : rupiah(nilai)}</b>
-        ${item.modal > 0 ? `<br>Modal: ${rupiah(item.modal)}` : ""}
-        ${untungRugi}
-        <button class="hapus-btn" onclick="hapusAset(${item.id})">Hapus</button>
+      <div class="baris">
+        <div class="chip-ikon"><i class="fa-solid fa-${ikonAset}"></i></div>
+        <div class="baris-isi">
+          <div class="baris-judul">${nama}</div>
+          <div class="baris-sub">${formatJumlah(item.jumlah)} ${satuanTeks}${
+            item.modal > 0 ? ", modal " + rupiah(item.modal) : ""
+          }</div>
+        </div>
+        <div class="baris-kanan">
+          <div class="angka">${nilai === null ? "Harga belum ada" : rupiah(nilai)}</div>
+          ${untungRugi}
+        </div>
+        <button class="ikon-tombol" aria-label="Hapus aset ${nama}"
+          onclick="hapusAset(${item.id})">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
       </div>
     `;
   });
 
   daftar.innerHTML = baris.length
     ? baris.join("")
-    : `<div class="empty">Belum ada aset. Tambahkan emas atau crypto di atas.</div>`;
+    : `<p class="kosong">Belum ada aset. Ketuk Tambah aset untuk mencatat emas atau crypto.</p>`;
 
-  /* ringkasan */
+  /* ringkasan (panel tinta) */
   const saldoKas = hitungSaldo();
+  const total = saldoKas + totalAset;
 
   ringkasan.innerHTML = `
-    <div class="baris-harga"><span>💵 Saldo kas</span><b>${rupiah(saldoKas)}</b></div>
-    <div class="baris-harga"><span>📈 Nilai aset</span><b>${rupiah(totalAset)}</b></div>
-    <hr>
-    <div class="baris-harga total">
-      <span>🏦 Total kekayaan</span>
-      <b>${rupiah(saldoKas + totalAset)}</b>
+    <p class="hero-label">Total kekayaan</p>
+    <div class="hero-angka ${total < 0 ? "minus" : ""}">${total < 0 ? "−" : ""}${rupiah(Math.abs(total))}</div>
+    <div class="hero-split">
+      <div><span>Saldo kas</span><b>${bertanda(saldoKas).replace("+", "")}</b></div>
+      <div><span>Nilai aset</span><b>${rupiah(totalAset)}</b></div>
     </div>
   `;
 }
 
 /* ---------- form & aksi ---------- */
 
-function ubahTipeAset() {
-  const tipe = document.getElementById("tipeAset").value;
+function setTipeAset(tipe) {
+  document.getElementById("tipeAset").value = tipe;
+  document.getElementById("segEmas").classList.toggle("aktif", tipe === "emas");
+  document.getElementById("segCrypto").classList.toggle("aktif", tipe === "crypto");
+
   document.getElementById("barisKoin").style.display =
     tipe === "crypto" ? "block" : "none";
 
@@ -379,12 +375,12 @@ function tambahAset() {
   const modal = Number(document.getElementById("modalAset").value);
 
   if (!(jumlah > 0)) {
-    alert("Isi jumlah (harus lebih dari 0)");
+    toast("Isi jumlah lebih dari 0");
     return;
   }
 
   if (tipe === "crypto" && !KOIN[koin]) {
-    alert("Pilih koin terlebih dahulu");
+    toast("Pilih koin terlebih dahulu");
     return;
   }
 
@@ -400,9 +396,11 @@ function tambahAset() {
 
   document.getElementById("jumlahAset").value = "";
   document.getElementById("modalAset").value = "";
+  document.getElementById("formAset").open = false;
 
   renderAset();
   perbaruiHarga(false);
+  toast("Aset tersimpan");
 }
 
 function hapusAset(id) {
@@ -411,6 +409,7 @@ function hapusAset(id) {
   aset = aset.filter(item => item.id !== id);
   simpanAset();
   renderAset();
+  toast("Aset dihapus");
 }
 
 /* ---------- init ---------- */
@@ -424,6 +423,6 @@ function hapusAset(id) {
       .join("");
   }
 
-  ubahTipeAset();
+  setTipeAset("emas");
   renderAset();
 })();

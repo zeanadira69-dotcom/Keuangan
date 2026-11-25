@@ -9,6 +9,22 @@ const KATEGORI = {
   pemasukan: ["Gaji", "Bonus", "Usaha", "Hasil Panen", "Lainnya"]
 };
 
+const IKON = {
+  "Makan": "utensils",
+  "BBM": "gas-pump",
+  "Belanja": "bag-shopping",
+  "Rokok": "smoking",
+  "Lainnya": "ellipsis",
+  "Gaji": "money-bill-wave",
+  "Bonus": "gift",
+  "Usaha": "store",
+  "Hasil Panen": "wheat-awn"
+};
+
+function ikon(kategori) {
+  return IKON[kategori] || "tag";
+}
+
 function muatData() {
   try {
     const mentah = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -37,25 +53,41 @@ function muatObjek(kunci) {
 
 let anggaran = muatObjek("anggaran");
 
-function simpanAnggaran() {
-  try {
-    localStorage.setItem("anggaran", JSON.stringify(anggaran));
-  } catch (e) {
-    alert("Gagal menyimpan anggaran.");
-  }
-}
-
 function simpanData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
-    alert("Gagal menyimpan data. Penyimpanan browser mungkin penuh.");
+    toast("Gagal menyimpan data. Penyimpanan browser mungkin penuh.");
+  }
+}
+
+function simpanAnggaran() {
+  try {
+    localStorage.setItem("anggaran", JSON.stringify(anggaran));
+  } catch (e) {
+    toast("Gagal menyimpan anggaran.");
   }
 }
 
 /* ===========================
    HELPER
 =========================== */
+
+let timerToast;
+
+function toast(pesan) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+
+  el.textContent = pesan;
+  el.classList.toggle("tampil", true);
+
+  clearTimeout(timerToast);
+  timerToast = setTimeout(
+    () => el.classList.toggle("tampil", false),
+    2200 + String(pesan).length * 30
+  );
+}
 
 function rupiah(angka) {
   return "Rp " + Math.round(Number(angka) || 0).toLocaleString("id-ID");
@@ -74,8 +106,56 @@ function formatTanggalIso(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function labelJenis(jenis) {
-  return jenis === "pemasukan" ? "💰 PEMASUKAN" : "💸 PENGELUARAN";
+function dariIso(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function labelTanggal(iso) {
+  const hariIni = new Date();
+  const kemarin = new Date();
+  kemarin.setDate(hariIni.getDate() - 1);
+
+  const pendek = dariIso(iso).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short"
+  });
+
+  if (iso === formatTanggalIso(hariIni)) return "Hari ini, " + pendek;
+  if (iso === formatTanggalIso(kemarin)) return "Kemarin, " + pendek;
+  return pendek;
+}
+
+function bertanda(angka) {
+  return (angka < 0 ? "−" : angka > 0 ? "+" : "") + rupiah(Math.abs(angka));
+}
+
+function barisTransaksi(item, bisaHapus) {
+  const masuk = item.jenis === "pemasukan";
+  const sub = item.catatan
+    ? escapeHtml(item.catatan)
+    : masuk ? "Pemasukan" : "Pengeluaran";
+
+  return `
+    <div class="baris">
+      <div class="chip-ikon ${masuk ? "masuk" : ""}">
+        <i class="fa-solid fa-${ikon(item.kategori)}"></i>
+      </div>
+      <div class="baris-isi">
+        <div class="baris-judul">${escapeHtml(item.kategori)}</div>
+        <div class="baris-sub">${sub}</div>
+      </div>
+      <div class="angka ${masuk ? "masuk" : "keluar"}">
+        ${masuk ? "+" : "−"}${rupiah(item.nominal)}
+      </div>
+      ${bisaHapus ? `
+        <button class="ikon-tombol" aria-label="Hapus transaksi ${escapeHtml(item.kategori)}"
+          onclick="hapusData(${item.id})">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>` : ""}
+    </div>
+  `;
 }
 
 /* ===========================
@@ -104,15 +184,36 @@ function showPage(pageId) {
 }
 
 /* ===========================
-   FORM TAMBAH
+   FORM CATAT
 =========================== */
 
-function isiKategori() {
-  const jenis = document.getElementById("jenis").value;
-  const select = document.getElementById("kategori");
+function setJenis(jenis) {
+  document.getElementById("jenis").value = jenis;
+  document.getElementById("segKeluar").classList.toggle("aktif", jenis === "pengeluaran");
+  document.getElementById("segMasuk").classList.toggle("aktif", jenis === "pemasukan");
 
-  select.innerHTML = KATEGORI[jenis]
-    .map(k => `<option value="${k}">${k}</option>`)
+  document.getElementById("kategori").value = KATEGORI[jenis][0];
+  renderChipKategori();
+}
+
+function pilihKategori(nama) {
+  document.getElementById("kategori").value = nama;
+  renderChipKategori();
+}
+
+function renderChipKategori() {
+  const jenis = document.getElementById("jenis").value;
+  const dipilih = document.getElementById("kategori").value;
+
+  document.getElementById("pilihKategori").innerHTML = KATEGORI[jenis]
+    .map(k => `
+      <button type="button"
+        class="chip ${k === dipilih ? "aktif" : ""}"
+        aria-pressed="${k === dipilih}"
+        onclick="pilihKategori('${k}')">
+        <i class="fa-solid fa-${ikon(k)}"></i> ${k}
+      </button>
+    `)
     .join("");
 }
 
@@ -123,8 +224,13 @@ function tambahTransaksi() {
   const nominal = Number(document.getElementById("nominal").value);
   const catatan = document.getElementById("catatan").value.trim();
 
-  if (!tanggal || !nominal || nominal <= 0) {
-    alert("Lengkapi tanggal dan nominal (harus lebih dari 0)");
+  if (!nominal || nominal <= 0) {
+    toast("Isi nominal lebih dari 0");
+    return;
+  }
+
+  if (!tanggal) {
+    toast("Pilih tanggal transaksi");
     return;
   }
 
@@ -143,15 +249,16 @@ function tambahTransaksi() {
   document.getElementById("catatan").value = "";
 
   renderDashboard();
-  alert("Data berhasil disimpan");
+  toast("Transaksi tersimpan");
 }
 
 /* ===========================
-   DASHBOARD
+   HOME
 =========================== */
 
 function renderDashboard() {
-  const hariIni = formatTanggalIso(new Date());
+  const sekarang = new Date();
+  const hariIni = formatTanggalIso(sekarang);
   const bulanIni = hariIni.substring(0, 7);
 
   let pemasukanBulan = 0;
@@ -176,26 +283,30 @@ function renderDashboard() {
     if (item.tanggal === hariIni) riwayatHariIni.push(item);
   });
 
-  document.getElementById("saldoSaatIni").textContent =
-    rupiah(totalPemasukan - totalPengeluaran);
+  const saldo = totalPemasukan - totalPengeluaran;
+  const saldoEl = document.getElementById("saldoSaatIni");
+
+  saldoEl.textContent = (saldo < 0 ? "−" : "") + rupiah(Math.abs(saldo));
+  saldoEl.classList.toggle("minus", saldo < 0);
+
   document.getElementById("pemasukanBulan").textContent = rupiah(pemasukanBulan);
-  document.getElementById("pengeluaranHari").textContent = rupiah(pengeluaranHari);
   document.getElementById("pengeluaranBulan").textContent = rupiah(pengeluaranBulan);
+  document.getElementById("pengeluaranHari").textContent = "Keluar " + rupiah(pengeluaranHari);
+
+  document.getElementById("tanggalHariIni").textContent =
+    sekarang.toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
 
   riwayatHariIni.sort((a, b) => b.id - a.id);
 
-  const html = riwayatHariIni.map(item => `
-    <div style="margin-bottom:10px">
-      <b>${labelJenis(item.jenis)} · ${escapeHtml(item.kategori)}</b>
-      <br>
-      <span class="${item.jenis === "pemasukan" ? "nominal-masuk" : "nominal-keluar"}">
-        ${item.jenis === "pemasukan" ? "+" : "-"} ${rupiah(item.nominal)}
-      </span>
-    </div>
-  `).join("");
-
   document.getElementById("riwayatHariIni").innerHTML =
-    html || "Belum ada transaksi";
+    riwayatHariIni.length
+      ? riwayatHariIni.map(item => barisTransaksi(item, false)).join("")
+      : `<p class="kosong">Belum ada transaksi hari ini. Ketuk Catat untuk menambahkan.</p>`;
 
   renderAnggaran();
 }
@@ -209,6 +320,14 @@ function hitungSaldo() {
    RIWAYAT & FILTER
 =========================== */
 
+function setFilterJenis(jenis) {
+  document.getElementById("filterJenis").value = jenis;
+  document.getElementById("fSemua").classList.toggle("aktif", jenis === "semua");
+  document.getElementById("fKeluar").classList.toggle("aktif", jenis === "pengeluaran");
+  document.getElementById("fMasuk").classList.toggle("aktif", jenis === "pemasukan");
+  filterRiwayat();
+}
+
 function filterRiwayat() {
   const awal = document.getElementById("tanggalAwal").value;
   const akhir = document.getElementById("tanggalAkhir").value;
@@ -218,12 +337,15 @@ function filterRiwayat() {
   const hasilDiv = document.getElementById("hasilRiwayat");
 
   if (!awal || !akhir) {
-    alert("Pilih tanggal awal dan akhir");
+    ringkasanDiv.innerHTML = `<p class="pesan-galat">Pilih tanggal awal dan akhir.</p>`;
+    hasilDiv.innerHTML = "";
     return;
   }
 
   if (awal > akhir) {
-    alert("Tanggal awal tidak boleh lebih besar dari tanggal akhir");
+    ringkasanDiv.innerHTML =
+      `<p class="pesan-galat">Tanggal awal tidak boleh lebih besar dari tanggal akhir.</p>`;
+    hasilDiv.innerHTML = "";
     return;
   }
 
@@ -251,7 +373,7 @@ function filterRiwayat() {
     }
   });
 
-  let kategoriTerbesar = "-";
+  let kategoriTerbesar = "";
   let nilaiTerbesar = 0;
 
   for (const k in perKategoriKeluar) {
@@ -261,48 +383,48 @@ function filterRiwayat() {
     }
   }
 
+  const selisih = totalMasuk - totalKeluar;
+
   ringkasanDiv.innerHTML = `
-    <div class="ringkasan-periode">
-      <h3>📊 Ringkasan Periode</h3>
-      <p><b>Periode:</b> ${awal} s/d ${akhir}</p>
-      <p><b>Jumlah Transaksi:</b> ${hasil.length}</p>
-      <p><b>Total Pemasukan:</b> ${rupiah(totalMasuk)}</p>
-      <p><b>Total Pengeluaran:</b> ${rupiah(totalKeluar)}</p>
-      <p><b>Selisih:</b> ${rupiah(totalMasuk - totalKeluar)}</p>
-      <p><b>Kategori Pengeluaran Terbesar:</b> ${escapeHtml(kategoriTerbesar)}${
-        nilaiTerbesar ? " (" + rupiah(nilaiTerbesar) + ")" : ""
-      }</p>
+    <div class="ringkas">
+      <div><span>Masuk</span><b class="masuk">${rupiah(totalMasuk)}</b></div>
+      <div><span>Keluar</span><b class="keluar">${rupiah(totalKeluar)}</b></div>
+      <div><span>Selisih</span><b>${bertanda(selisih)}</b></div>
     </div>
+    ${kategoriTerbesar
+      ? `<p class="catatan-kecil">Pengeluaran terbesar: ${escapeHtml(kategoriTerbesar)}, ${rupiah(nilaiTerbesar)}</p>`
+      : ""}
   `;
 
   if (hasil.length === 0) {
-    hasilDiv.innerHTML = `<div class="empty">Tidak ada transaksi pada periode ini</div>`;
+    hasilDiv.innerHTML =
+      `<p class="kosong">Tidak ada transaksi pada periode ini. Coba ubah tanggal atau filter.</p>`;
     return;
   }
 
-  hasilDiv.innerHTML = hasil.map(item => `
-    <div class="item">
-      <b>
-        ${labelJenis(item.jenis)}
-        <br>
-        ${escapeHtml(item.kategori)}
-      </b>
+  // kelompokkan per tanggal (hasil sudah terurut terbaru dulu)
+  const grup = [];
+  hasil.forEach(item => {
+    const terakhir = grup[grup.length - 1];
+    if (terakhir && terakhir.tanggal === item.tanggal) {
+      terakhir.daftar.push(item);
+    } else {
+      grup.push({ tanggal: item.tanggal, daftar: [item] });
+    }
+  });
 
-      <div class="badge">${item.tanggal}</div>
+  hasilDiv.innerHTML = grup.map(g => {
+    const netto = g.daftar.reduce((t, item) =>
+      t + (item.jenis === "pemasukan" ? item.nominal : -item.nominal), 0);
 
-      <br><br>
-      ${escapeHtml(item.catatan) || "-"}
-      <br><br>
-
-      <b class="${item.jenis === "pemasukan" ? "nominal-masuk" : "nominal-keluar"}">
-        ${rupiah(item.nominal)}
-      </b>
-
-      <button class="hapus-btn" onclick="hapusData(${item.id})">
-        Hapus
-      </button>
-    </div>
-  `).join("");
+    return `
+      <div class="grup-tanggal">
+        <span>${labelTanggal(g.tanggal)}</span>
+        <span>${bertanda(netto)}</span>
+      </div>
+      ${g.daftar.map(item => barisTransaksi(item, true)).join("")}
+    `;
+  }).join("");
 }
 
 /* ===========================
@@ -310,27 +432,26 @@ function filterRiwayat() {
 =========================== */
 
 function hapusData(id) {
-  if (!confirm("Yakin ingin menghapus data ini?")) return;
+  if (!confirm("Yakin ingin menghapus transaksi ini?")) return;
 
   data = data.filter(item => item.id !== id);
 
   simpanData();
   renderDashboard();
   filterRiwayat();
+  toast("Transaksi dihapus");
 }
 
 function hapusSemuaData() {
-  if (!confirm("SEMUA DATA AKAN DIHAPUS! Lanjutkan?")) return;
+  if (!confirm("SEMUA TRANSAKSI AKAN DIHAPUS! Lanjutkan?")) return;
 
   data = [];
 
   simpanData();
   renderDashboard();
+  filterRiwayat();
 
-  document.getElementById("hasilRiwayat").innerHTML = "";
-  document.getElementById("ringkasanPeriode").innerHTML = "";
-
-  alert("Semua data berhasil dihapus");
+  toast("Semua transaksi dihapus");
 }
 
 /* ===========================
@@ -339,12 +460,12 @@ function hapusSemuaData() {
 
 function exportExcel() {
   if (data.length === 0) {
-    alert("Belum ada data untuk diexport");
+    toast("Belum ada data untuk diexport");
     return;
   }
 
   if (typeof XLSX === "undefined") {
-    alert("Library Excel belum termuat. Cek koneksi internet lalu coba lagi.");
+    toast("Library Excel belum termuat. Cek koneksi internet lalu coba lagi.");
     return;
   }
 
@@ -406,7 +527,7 @@ function renderFormAnggaran() {
       min="0"
       class="input-anggaran"
       data-kategori="${k}"
-      placeholder="Batas per bulan (kosongkan = tanpa batas)"
+      placeholder="Tanpa batas"
       value="${anggaran[k] > 0 ? anggaran[k] : ""}">
   `).join("");
 }
@@ -422,7 +543,7 @@ function simpanFormAnggaran() {
   anggaran = baru;
   simpanAnggaran();
   renderAnggaran();
-  alert("Anggaran disimpan");
+  toast("Anggaran tersimpan");
 }
 
 function renderAnggaran() {
@@ -451,7 +572,7 @@ function renderAnggaran() {
         <div class="anggaran-item">
           <div class="anggaran-head">
             <b>${escapeHtml(k)}</b>
-            <span>${rupiah(pakai)} / ${rupiah(batas)}</span>
+            <span>${rupiah(pakai)} dari ${rupiah(batas)}</span>
           </div>
           <div class="bar">
             <div class="bar-isi ${kelas}" style="width:${Math.min(persen, 100)}%"></div>
@@ -459,7 +580,7 @@ function renderAnggaran() {
           <small class="${kelas}">
             ${sisa >= 0
               ? "Sisa " + rupiah(sisa) + " (" + persen + "% terpakai)"
-              : "⚠️ Melebihi " + rupiah(-sisa)}
+              : "Melebihi anggaran " + rupiah(-sisa)}
           </small>
         </div>
       `;
@@ -467,7 +588,7 @@ function renderAnggaran() {
 
   wadah.innerHTML = baris.length
     ? baris.join("")
-    : "Belum ada anggaran. Atur di menu Setelan.";
+    : `<p class="kosong">Belum ada anggaran. Atur batas per kategori di Setelan.</p>`;
 }
 
 /* ===========================
@@ -477,7 +598,7 @@ function renderAnggaran() {
 function backupData() {
   const paket = {
     app: "catatan-keuangan",
-    versi: "3.3",
+    versi: "3.4",
     dibuat: new Date().toISOString(),
     pengeluaran: data,
     anggaran: anggaran,
@@ -497,6 +618,8 @@ function backupData() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  toast("Backup diunduh");
 }
 
 function bersihkanTransaksi(daftar) {
@@ -567,19 +690,18 @@ function restoreData(event) {
 
       renderFormAnggaran();
       renderDashboard();
-      document.getElementById("hasilRiwayat").innerHTML = "";
-      document.getElementById("ringkasanPeriode").innerHTML = "";
+      filterRiwayat();
 
-      alert("Restore berhasil");
+      toast("Data berhasil dipulihkan");
     } catch (e) {
-      alert("Restore gagal: " + e.message);
+      toast("Gagal memulihkan: " + e.message);
     } finally {
       input.value = "";
     }
   };
 
   reader.onerror = () => {
-    alert("File tidak bisa dibaca");
+    toast("File tidak bisa dibaca");
     input.value = "";
   };
 
@@ -591,18 +713,14 @@ function restoreData(event) {
 =========================== */
 
 (function init() {
-  const sekarang = new Date();
-  const hariIni = formatTanggalIso(sekarang);
-  const awalBulan = hariIni.substring(0, 8) + "01";
+  const hariIni = formatTanggalIso(new Date());
 
   document.getElementById("tanggal").value = hariIni;
-  document.getElementById("tanggalAwal").value = awalBulan;
+  document.getElementById("tanggalAwal").value = hariIni.substring(0, 8) + "01";
   document.getElementById("tanggalAkhir").value = hariIni;
 
-  document.getElementById("jenis").addEventListener("change", isiKategori);
-  isiKategori();
+  setJenis("pengeluaran");
   renderFormAnggaran();
-
   renderDashboard();
 })();
 

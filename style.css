@@ -1,344 +1,744 @@
+/* ===========================
+   TOKEN
+   Konsep: buku kas. Satu panel tinta untuk saldo,
+   selebihnya baris berpemisah tipis seperti halaman buku.
+=========================== */
+
+:root{
+--kertas:#F2F3EC;
+--teks:#16211B;
+--redup:#66716A;
+--garis:#DADDD2;
+--chip:#E6E9DF;
+--isian:#FFFFFF;
+
+--daun:#2B7A4B;
+--bata:#B3382C;
+--emas:#D4A23C;
+
+--tinta:#10261D;
+--tinta-teks:#F5F0DF;
+--tinta-redup:#A9B8AE;
+--tinta-garis:rgba(212,162,60,.45);
+
+--jari:48px;
+--font:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+
+@media (prefers-color-scheme:dark){
+:root{
+--kertas:#0D1411;
+--teks:#E6EBE5;
+--redup:#8E9B93;
+--garis:#243029;
+--chip:#1A261F;
+--isian:#141E18;
+
+--daun:#5DBF84;
+--bata:#EC7062;
+
+--tinta:#16291F;
+}
+}
+
+/* ===========================
+   DASAR
+=========================== */
+
 *{
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial,sans-serif;
+}
+
+html{
+-webkit-text-size-adjust:100%;
 }
 
 body{
-background:#f5f7fb;
-padding:15px;
-padding-bottom:90px;
-color:#333;
+font-family:var(--font);
+font-size:15px;
+line-height:1.45;
+background:var(--kertas);
+color:var(--teks);
+padding:0 18px calc(110px + env(safe-area-inset-bottom));
+}
+
+main{
+max-width:560px;
+margin:0 auto;
+}
+
+button,
+input,
+select{
+font:inherit;
+color:inherit;
+}
+
+button{
+border:0;
+cursor:pointer;
+background:none;
+-webkit-tap-highlight-color:transparent;
+}
+
+:focus-visible{
+outline:2px solid var(--emas);
+outline-offset:2px;
 }
 
 .page{
 display:none;
-animation:fade .2s ease;
+padding-top:max(22px, env(safe-area-inset-top));
 }
 
 .page.active{
 display:block;
 }
 
-@keyframes fade{
-from{
-opacity:0;
-transform:translateY(5px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
-}
+/* ===========================
+   TIPOGRAFI
+=========================== */
 
 h1{
 font-size:24px;
-margin-bottom:15px;
+font-weight:800;
+letter-spacing:-.015em;
+line-height:1.2;
 }
 
-.card{
-background:#fff;
-padding:18px;
-margin-bottom:15px;
-border-radius:16px;
-box-shadow:0 2px 10px rgba(0,0,0,.08);
-}
-
-.card h3{
-margin-bottom:10px;
-color:#666;
-font-size:15px;
-}
-
-.nominal-besar{
-font-size:28px;
-font-weight:bold;
-color:#1e88e5;
-}
-
-input,
-select{
-width:100%;
-padding:12px;
-margin-bottom:10px;
-border:1px solid #ddd;
-border-radius:10px;
-font-size:15px;
-background:white;
-}
-
-button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:10px;
-background:#1e88e5;
-color:white;
-font-size:15px;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:active{
-transform:scale(.98);
-}
-
-.btn-merah{
-background:#e53935;
-}
-
-.item{
-background:white;
-padding:15px;
-border-radius:12px;
-margin-bottom:10px;
-box-shadow:0 2px 8px rgba(0,0,0,.05);
-}
-
-.item b{
+h2{
 font-size:16px;
+font-weight:700;
 }
 
-.item small{
-color:#777;
+.judul-halaman{
+margin-bottom:18px;
 }
 
-.hapus-btn{
-background:#e53935;
-margin-top:10px;
+.judul-halaman p{
+color:var(--redup);
+font-size:14px;
+margin-top:2px;
 }
 
-.edit-btn{
-background:#43a047;
-margin-top:10px;
+label,
+.label{
+display:block;
+font-size:13px;
+font-weight:600;
+color:var(--redup);
+margin:16px 0 6px;
+}
+
+.catatan-kecil{
+font-size:13px;
+color:var(--redup);
+margin-bottom:12px;
+}
+
+.pesan-galat{
+font-size:14px;
+color:var(--bata);
+padding:10px 0;
+}
+
+.angka{
+font-variant-numeric:tabular-nums;
+font-weight:700;
+white-space:nowrap;
+}
+
+.angka.masuk,
+.masuk{
+color:var(--daun);
+}
+
+.angka.keluar,
+.keluar{
+color:var(--bata);
+}
+
+/* ===========================
+   PANEL SALDO (satu-satunya blok tebal)
+=========================== */
+
+.hero{
+background-color:var(--tinta);
+background-image:repeating-linear-gradient(
+to bottom,
+transparent 0,
+transparent 31px,
+rgba(245,240,223,.06) 31px,
+rgba(245,240,223,.06) 32px
+);
+color:var(--tinta-teks);
+border-radius:22px;
+padding:22px 20px 18px;
 margin-bottom:8px;
 }
 
-hr{
-border:none;
-height:1px;
-background:#eee;
-margin:15px 0;
+.hero-label{
+font-size:13px;
+font-weight:600;
+color:var(--tinta-redup);
 }
 
-.bottom-nav{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-height:70px;
-background:white;
-display:flex;
-justify-content:space-around;
-align-items:center;
-box-shadow:0 -2px 10px rgba(0,0,0,.08);
-z-index:999;
+.hero-angka{
+font-size:clamp(32px, 10.5vw, 44px);
+font-weight:800;
+letter-spacing:-.025em;
+line-height:1.15;
+font-variant-numeric:tabular-nums;
+margin:4px 0 18px;
+overflow-wrap:anywhere;
 }
 
-.bottom-nav button{
-background:none;
-color:#666;
-border:none;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
+.hero-angka.minus{
+color:#F4A39A;
+}
+
+.hero-split{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+border-top:1px solid var(--tinta-garis);
+padding-top:14px;
+}
+
+.hero-split span{
+display:block;
 font-size:12px;
-height:100%;
-border-radius:0;
+color:var(--tinta-redup);
+margin-bottom:2px;
 }
 
-.bottom-nav button i{
-font-size:20px;
-margin-bottom:4px;
+.hero-split b{
+font-size:15px;
+font-weight:700;
+font-variant-numeric:tabular-nums;
 }
 
-.bottom-nav button.active{
-color:#1e88e5;
+/* ===========================
+   BLOK & BARIS BUKU KAS
+=========================== */
+
+.blok{
+margin-top:26px;
 }
 
-.empty{
-text-align:center;
-padding:20px;
-color:#888;
-font-style:italic;
-}
-
-.badge{
-display:inline-block;
-padding:4px 8px;
-background:#e3f2fd;
-color:#1976d2;
-border-radius:20px;
-font-size:12px;
-margin-top:5px;
-}
-
-.total-kategori{
+.blok-kepala{
 display:flex;
 justify-content:space-between;
-padding:10px 0;
-border-bottom:1px solid #eee;
+align-items:baseline;
+gap:12px;
+margin-bottom:6px;
 }
 
-.total-kategori:last-child{
-border-bottom:none;
-}
-
-@media(max-width:480px){
-
-.nominal-besar{
-font-size:24px;
-}
-
-h1{
-font-size:22px;
-}
-
-.card{
-padding:15px;
-}
-
-}
-.ringkasan-periode{
-
-background:#eef6ff;
-
-padding:15px;
-
-border-radius:12px;
-
-margin-bottom:15px;
-
-border:1px solid #d7e8ff;
-
-}
-
-.ringkasan-periode h3{
-
-margin-bottom:10px;
-
-color:#1e88e5;
-
-}
-
-.ringkasan-periode p{
-
-margin-bottom:5px;
-
-}
-
-.footer-info{
-    text-align:center;
-    margin-top:20px;
-    margin-bottom:10px;
-    color:#888;
-    font-size:12px;
-    line-height:1.6;
-}
-
-.footer-info p{
-    margin:2px 0;
-}
-
-
-label{
-display:block;
-margin-bottom:5px;
+.angka-kepala{
 font-size:14px;
-color:#555;
+font-weight:700;
+color:var(--bata);
+font-variant-numeric:tabular-nums;
 }
 
-.nominal-masuk{
-color:#43a047;
-font-weight:bold;
+.baris{
+display:flex;
+align-items:center;
+gap:12px;
+padding:12px 0;
+border-bottom:1px solid var(--garis);
 }
 
-.nominal-keluar{
-color:#e53935;
-font-weight:bold;
+.baris:last-child{
+border-bottom:0;
 }
+
+.chip-ikon{
+width:40px;
+height:40px;
+flex:none;
+display:grid;
+place-items:center;
+border-radius:12px;
+background:var(--chip);
+color:var(--teks);
+font-size:15px;
+}
+
+.chip-ikon.masuk{
+color:var(--daun);
+}
+
+.baris-isi{
+flex:1;
+min-width:0;
+}
+
+.baris-judul{
+font-weight:700;
+}
+
+.baris-sub{
+font-size:13px;
+color:var(--redup);
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.baris-kanan{
+text-align:right;
+}
+
+.baris-kanan small{
+display:block;
+font-size:12px;
+font-weight:600;
+font-variant-numeric:tabular-nums;
+}
+
+.ikon-tombol{
+width:38px;
+height:38px;
+flex:none;
+display:grid;
+place-items:center;
+border-radius:10px;
+color:var(--redup);
+}
+
+.ikon-tombol:active{
+background:var(--chip);
+}
+
+.grup-tanggal{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+font-size:13px;
+font-weight:700;
+color:var(--redup);
+padding:20px 0 2px;
+border-bottom:2px solid var(--garis);
+}
+
+.grup-tanggal span:last-child{
+font-variant-numeric:tabular-nums;
+}
+
+.kosong{
+padding:18px 0;
+color:var(--redup);
+font-size:14px;
+}
+
+.ringkas{
+display:grid;
+grid-template-columns:repeat(3, 1fr);
+gap:10px;
+padding:14px 0 10px;
+border-bottom:1px solid var(--garis);
+}
+
+.ringkas span{
+display:block;
+font-size:12px;
+color:var(--redup);
+}
+
+.ringkas b{
+font-size:14px;
+font-weight:700;
+font-variant-numeric:tabular-nums;
+overflow-wrap:anywhere;
+}
+
+.ringkas + .catatan-kecil{
+margin:10px 0 0;
+}
+
+/* ===========================
+   ANGGARAN
+=========================== */
 
 .anggaran-item{
-margin-bottom:14px;
+padding:10px 0;
 }
 
 .anggaran-head{
 display:flex;
 justify-content:space-between;
+gap:10px;
 font-size:14px;
-margin-bottom:5px;
+margin-bottom:6px;
 }
 
 .anggaran-head span{
-color:#666;
+color:var(--redup);
+font-variant-numeric:tabular-nums;
 }
 
 .bar{
-height:10px;
-background:#e8eaf0;
-border-radius:6px;
+height:8px;
+background:var(--chip);
+border-radius:99px;
 overflow:hidden;
-margin-bottom:4px;
 }
 
 .bar-isi{
 height:100%;
-background:#43a047;
-border-radius:6px;
-transition:width .3s;
+background:var(--daun);
+border-radius:99px;
+transition:width .4s ease;
 }
 
 .bar-isi.waspada{
-background:#fb8c00;
+background:var(--emas);
 }
 
 .bar-isi.bahaya{
-background:#e53935;
+background:var(--bata);
 }
 
-small.waspada{
-color:#fb8c00;
+.anggaran-item small{
+display:block;
+margin-top:5px;
+font-size:12px;
+color:var(--redup);
 }
 
-small.bahaya{
-color:#e53935;
-font-weight:bold;
+.anggaran-item small.bahaya{
+color:var(--bata);
+font-weight:700;
 }
 
-.baris-harga{
+/* ===========================
+   FORM
+=========================== */
+
+input,
+select{
+width:100%;
+min-width:0;
+min-height:var(--jari);
+padding:10px 14px;
+background:var(--isian);
+border:1px solid var(--garis);
+border-radius:12px;
+font-size:16px;
+}
+
+input[type="hidden"]{
+display:none;
+}
+
+.dua-kolom{
+display:grid;
+grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+gap:12px;
+}
+
+.dua-kolom > div{
+min-width:0;
+}
+
+.nominal-wrap{
+display:flex;
+align-items:baseline;
+gap:10px;
+border-bottom:2px solid var(--garis);
+padding:2px 0 6px;
+margin-bottom:6px;
+}
+
+.nominal-wrap:focus-within{
+border-color:var(--emas);
+}
+
+.nominal-wrap span{
+font-size:20px;
+font-weight:700;
+color:var(--redup);
+}
+
+.nominal-wrap input{
+min-height:0;
+padding:0;
+border:0;
+border-radius:0;
+background:transparent;
+font-size:38px;
+font-weight:800;
+letter-spacing:-.02em;
+font-variant-numeric:tabular-nums;
+}
+
+.nominal-wrap input:focus-visible{
+outline:none;
+}
+
+.segmen{
+display:flex;
+gap:4px;
+padding:4px;
+background:var(--chip);
+border-radius:13px;
+margin-bottom:6px;
+}
+
+.segmen button{
+flex:1;
+min-height:42px;
+padding:8px 6px;
+border-radius:10px;
+font-size:14px;
+font-weight:600;
+color:var(--redup);
+}
+
+.segmen button.aktif{
+background:var(--tinta);
+color:var(--tinta-teks);
+}
+
+.chips{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+}
+
+.chip{
+display:inline-flex;
+align-items:center;
+gap:8px;
+min-height:44px;
+padding:0 16px;
+border-radius:99px;
+border:1.5px solid var(--garis);
+background:var(--isian);
+font-weight:600;
+font-size:14px;
+}
+
+.chip.aktif{
+border-color:var(--emas);
+background:rgba(212,162,60,.16);
+}
+
+.tombol{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+width:100%;
+min-height:50px;
+margin-top:22px;
+padding:0 18px;
+border-radius:14px;
+background:var(--tinta);
+color:var(--tinta-teks);
+font-size:15px;
+font-weight:700;
+}
+
+.tombol:active{
+transform:scale(.985);
+}
+
+.tombol.sekunder{
+margin-top:0;
+background:var(--chip);
+color:var(--teks);
+}
+
+.tombol.bahaya{
+margin-top:6px;
+background:transparent;
+border:1.5px solid var(--bata);
+color:var(--bata);
+}
+
+.tombol-teks{
+font-size:13px;
+font-weight:700;
+color:var(--redup);
+padding:6px 0 6px 10px;
+}
+
+.tumpuk{
+display:grid;
+gap:10px;
+}
+
+#formAnggaran label:first-child{
+margin-top:4px;
+}
+
+/* ===========================
+   ASET
+=========================== */
+
+.harga-baris{
 display:flex;
 justify-content:space-between;
-padding:7px 0;
-border-bottom:1px solid #f0f0f0;
-font-size:15px;
+gap:12px;
+padding:10px 0;
+border-bottom:1px solid var(--garis);
 }
 
-.baris-harga.total{
-border-bottom:none;
-font-size:17px;
+.harga-baris:last-of-type{
+border-bottom:0;
 }
 
-.catatan-harga{
-display:block;
-margin:10px 0;
-color:#888;
-line-height:1.5;
+.harga-baris b{
+font-variant-numeric:tabular-nums;
 }
 
 .status-harga{
 font-size:13px;
-color:#e65100;
-margin-bottom:10px;
+color:var(--bata);
+margin-top:6px;
 }
 
-.judul-seksi{
-margin:5px 0 10px;
-color:#666;
-font-size:15px;
+.lipat{
+margin-top:22px;
+border-radius:14px;
+background:var(--chip);
+}
+
+.lipat summary{
+display:flex;
+justify-content:space-between;
+align-items:center;
+min-height:50px;
+padding:0 16px;
+font-weight:700;
+cursor:pointer;
+list-style:none;
+}
+
+.lipat summary::-webkit-details-marker{
+display:none;
+}
+
+.lipat summary::after{
+content:"\f078";
+font-family:"Font Awesome 6 Free";
+font-weight:900;
+font-size:12px;
+color:var(--redup);
+transition:transform .2s;
+}
+
+.lipat[open] summary::after{
+transform:rotate(180deg);
+}
+
+.lipat-isi{
+padding:0 16px 18px;
+}
+
+.lipat-isi .segmen{
+background:var(--kertas);
+}
+
+/* ===========================
+   NAVIGASI BAWAH
+=========================== */
+
+.bottom-nav{
+position:fixed;
+left:0;
+right:0;
+bottom:0;
+z-index:50;
+display:grid;
+grid-template-columns:repeat(5, 1fr);
+align-items:end;
+padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+background:var(--kertas);
+border-top:1px solid var(--garis);
 }
 
 .bottom-nav button{
-min-width:0;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:3px;
+min-height:54px;
+font-size:11px;
+font-weight:600;
+color:var(--redup);
+}
+
+.bottom-nav button i{
+font-size:19px;
+}
+
+.bottom-nav button.active{
+color:var(--teks);
+font-weight:800;
+}
+
+.nav-tambah .fab{
+display:grid;
+place-items:center;
+width:54px;
+height:54px;
+margin-top:-26px;
+border-radius:50%;
+background:var(--emas);
+color:#10261D;
+font-size:20px;
+box-shadow:0 6px 16px rgba(16,38,29,.3);
+}
+
+.nav-tambah:active .fab{
+transform:scale(.95);
+}
+
+/* ===========================
+   TOAST
+=========================== */
+
+#toast{
+position:fixed;
+left:50%;
+bottom:calc(92px + env(safe-area-inset-bottom));
+z-index:100;
+max-width:calc(100% - 36px);
+padding:12px 18px;
+border-radius:12px;
+background:var(--tinta);
+color:var(--tinta-teks);
+font-size:14px;
+font-weight:600;
+text-align:center;
+transform:translate(-50%, 12px);
+opacity:0;
+pointer-events:none;
+transition:opacity .2s, transform .2s;
+}
+
+#toast.tampil{
+opacity:1;
+transform:translate(-50%, 0);
+}
+
+.footer-info{
+margin-top:34px;
+text-align:center;
+font-size:12px;
+line-height:1.7;
+color:var(--redup);
+}
+
+@media (prefers-reduced-motion:reduce){
+*{
+transition:none !important;
+animation:none !important;
+}
 }
