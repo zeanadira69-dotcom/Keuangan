@@ -61,6 +61,14 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 <section class="blok">
 <div class="blok-kepala">
+<h2>Pengeluaran per kategori</h2>
+<span class="catatan-kecil" style="margin:0">Bulan ini</span>
+</div>
+<div id="grafikKategori"></div>
+</section>
+
+<section class="blok">
+<div class="blok-kepala">
 <h2>Hari ini</h2>
 <span id="pengeluaranHari" class="angka-kepala">Keluar Rp 0</span>
 </div>
@@ -74,8 +82,13 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 <section id="tambahPage" class="page">
 
 <header class="judul-halaman">
-<h1>Catat transaksi</h1>
+<h1 id="judulCatat">Catat transaksi</h1>
 </header>
+
+<div id="bannerEdit" class="banner-edit" hidden>
+<span>Kamu sedang mengubah transaksi yang sudah tersimpan.</span>
+<button type="button" onclick="batalEdit()">Batal</button>
+</div>
 
 <div class="segmen" role="group" aria-label="Jenis transaksi">
 <button type="button" id="segKeluar" class="aktif" onclick="setJenis('pengeluaran')"><span class="titik keluar"></span>Pengeluaran</button>
@@ -137,6 +150,8 @@ placeholder="0">
 <input type="date" id="tanggalAkhir" onchange="filterRiwayat()">
 </div>
 </div>
+
+<p class="catatan-kecil" style="margin-top:14px">Ketuk transaksi untuk mengubahnya.</p>
 
 <div id="ringkasanPeriode"></div>
 <div id="hasilRiwayat"></div>
@@ -292,7 +307,7 @@ hidden>
 </section>
 
 <p class="footer-info">
-Catatan Keuangan v3.5<br>
+Catatan Keuangan v3.6<br>
 Dibuat oleh Edy Putra. Semoga bermanfaat 🤙
 </p>
 

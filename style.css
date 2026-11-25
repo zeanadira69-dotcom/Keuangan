@@ -1024,3 +1024,52 @@ margin-top:2px;
 font-size:12px;
 font-weight:700;
 }
+
+/* ===========================
+   UBAH TRANSAKSI & GRAFIK KATEGORI
+=========================== */
+
+.baris-ketuk{
+flex:1;
+min-width:0;
+display:flex;
+align-items:center;
+gap:12px;
+text-align:left;
+border-radius:10px;
+}
+
+.baris-ketuk:active{
+background:var(--chip);
+}
+
+.banner-edit{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:12px;
+margin-bottom:14px;
+padding:10px 12px 10px 14px;
+border-radius:12px;
+border-left:4px solid var(--emas);
+background:var(--chip);
+font-size:14px;
+}
+
+.banner-edit[hidden]{
+display:none;
+}
+
+.banner-edit button{
+flex:none;
+min-height:38px;
+padding:0 14px;
+border-radius:10px;
+border:1.5px solid var(--garis-isian);
+background:var(--isian);
+font-weight:700;
+}
+
+.bar-isi.biru{
+background:var(--seri-1);
+}

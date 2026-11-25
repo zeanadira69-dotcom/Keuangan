@@ -137,8 +137,7 @@ function barisTransaksi(item, bisaHapus) {
     ? escapeHtml(item.catatan)
     : masuk ? "Pemasukan" : "Pengeluaran";
 
-  return `
-    <div class="baris">
+  const isi = `
       <div class="chip-ikon ${masuk ? "masuk" : ""}">
         <i class="fa-solid fa-${ikon(item.kategori)}"></i>
       </div>
@@ -149,11 +148,21 @@ function barisTransaksi(item, bisaHapus) {
       <div class="angka ${masuk ? "masuk" : "keluar"}">
         ${masuk ? "+" : "−"}${rupiah(item.nominal)}
       </div>
-      ${bisaHapus ? `
-        <button class="ikon-tombol" aria-label="Hapus transaksi ${escapeHtml(item.kategori)}"
-          onclick="hapusData(${item.id})">
-          <i class="fa-regular fa-trash-can"></i>
-        </button>` : ""}
+  `;
+
+  if (!bisaHapus) {
+    return `<div class="baris">${isi}</div>`;
+  }
+
+  return `
+    <div class="baris">
+      <button class="baris-ketuk"
+        aria-label="Ubah transaksi ${escapeHtml(item.kategori)} ${rupiah(item.nominal)}"
+        onclick="mulaiEdit(${item.id})">${isi}</button>
+      <button class="ikon-tombol" aria-label="Hapus transaksi ${escapeHtml(item.kategori)}"
+        onclick="hapusData(${item.id})">
+        <i class="fa-regular fa-trash-can"></i>
+      </button>
     </div>
   `;
 }
@@ -163,6 +172,10 @@ function barisTransaksi(item, bisaHapus) {
 =========================== */
 
 function showPage(pageId) {
+  if (pageId !== "tambahPage" && sedangEdit !== null) {
+    akhiriEdit();
+  }
+
   document.querySelectorAll(".page").forEach(page => {
     page.classList.toggle("active", page.id === pageId);
   });
@@ -231,13 +244,17 @@ function renderChipKategori() {
   const jenis = document.getElementById("jenis").value;
   const dipilih = document.getElementById("kategori").value;
 
-  document.getElementById("pilihKategori").innerHTML = KATEGORI[jenis]
+  const daftarKategori = !dipilih || KATEGORI[jenis].includes(dipilih)
+    ? KATEGORI[jenis]
+    : [...KATEGORI[jenis], dipilih];
+
+  document.getElementById("pilihKategori").innerHTML = daftarKategori
     .map(k => `
       <button type="button"
         class="chip ${k === dipilih ? "aktif" : ""}"
         aria-pressed="${k === dipilih}"
-        onclick="pilihKategori('${k}')">
-        <i class="fa-solid fa-${ikon(k)}"></i> ${k}
+        onclick="pilihKategori(this.dataset.k)" data-k="${escapeHtml(k)}">
+        <i class="fa-solid fa-${ikon(k)}"></i> ${escapeHtml(k)}
         ${k === dipilih ? '<i class="fa-solid fa-check centang"></i>' : ""}
       </button>
     `)
@@ -261,6 +278,25 @@ function tambahTransaksi() {
     return;
   }
 
+  if (sedangEdit !== null) {
+    const idx = data.findIndex(item => item.id === sedangEdit);
+
+    if (idx < 0) {
+      toast("Transaksi tidak ditemukan. Mungkin sudah dihapus.");
+      akhiriEdit();
+      return;
+    }
+
+    data[idx] = { ...data[idx], jenis, tanggal, kategori, nominal, catatan };
+    simpanData();
+
+    akhiriEdit();
+    renderDashboard();
+    toast("Perubahan tersimpan");
+    showPage("riwayatPage");
+    return;
+  }
+
   data.push({
     id: Date.now(),
     jenis,
@@ -278,6 +314,58 @@ function tambahTransaksi() {
   perbaruiCek();
   renderDashboard();
   toast((jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran") + " tersimpan");
+}
+
+/* ===========================
+   UBAH TRANSAKSI
+=========================== */
+
+let sedangEdit = null;
+
+function aturTampilanEdit(aktif) {
+  document.getElementById("bannerEdit").hidden = !aktif;
+  document.getElementById("judulCatat").textContent = aktif ? "Ubah transaksi" : "Catat transaksi";
+
+  document.getElementById("tombolSimpan").textContent = aktif
+    ? "Simpan perubahan"
+    : document.getElementById("jenis").value === "pemasukan"
+      ? "Simpan pemasukan"
+      : "Simpan pengeluaran";
+}
+
+function mulaiEdit(id) {
+  const item = data.find(x => x.id === id);
+  if (!item) return;
+
+  showPage("tambahPage");
+
+  setJenis(item.jenis);
+  document.getElementById("kategori").value = item.kategori;
+  renderChipKategori();
+
+  document.getElementById("nominal").value = item.nominal;
+  document.getElementById("tanggal").value = item.tanggal;
+  document.getElementById("catatan").value = item.catatan || "";
+
+  sedangEdit = id;
+  aturTampilanEdit(true);
+  perbaruiCek();
+}
+
+function akhiriEdit() {
+  sedangEdit = null;
+
+  document.getElementById("nominal").value = "";
+  document.getElementById("catatan").value = "";
+  document.getElementById("tanggal").value = formatTanggalIso(new Date());
+
+  setJenis("pengeluaran");
+  aturTampilanEdit(false);
+}
+
+function batalEdit() {
+  akhiriEdit();
+  showPage("riwayatPage");
 }
 
 /* ===========================
@@ -337,6 +425,48 @@ function renderDashboard() {
       : `<p class="kosong">Belum ada transaksi hari ini. Ketuk Catat untuk menambahkan.</p>`;
 
   renderAnggaran();
+  renderKategoriBulan();
+}
+
+function renderKategoriBulan() {
+  const wadah = document.getElementById("grafikKategori");
+  if (!wadah) return;
+
+  const bulanIni = formatTanggalIso(new Date()).substring(0, 7);
+  const total = {};
+  let jumlah = 0;
+
+  data.forEach(item => {
+    if (item.jenis === "pemasukan" || !item.tanggal.startsWith(bulanIni)) return;
+    total[item.kategori] = (total[item.kategori] || 0) + item.nominal;
+    jumlah += item.nominal;
+  });
+
+  const urut = Object.keys(total).sort((a, b) => total[b] - total[a]);
+
+  if (!urut.length) {
+    wadah.innerHTML = `<p class="kosong">Belum ada pengeluaran bulan ini.</p>`;
+    return;
+  }
+
+  const maks = total[urut[0]];
+
+  wadah.innerHTML = urut.map(k => {
+    const persen = (total[k] / jumlah) * 100;
+    const lebar = Math.max((total[k] / maks) * 100, 2);
+
+    return `
+      <div class="anggaran-item">
+        <div class="anggaran-head">
+          <b>${escapeHtml(k)}</b>
+          <span>${rupiah(total[k])} · ${persen > 0 && persen < 1 ? "<1" : Math.round(persen)}%</span>
+        </div>
+        <div class="bar">
+          <div class="bar-isi biru" style="width:${lebar}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 function hitungSaldo() {
@@ -461,6 +591,8 @@ function filterRiwayat() {
 
 function hapusData(id) {
   if (!confirm("Yakin ingin menghapus transaksi ini?")) return;
+
+  if (sedangEdit === id) akhiriEdit();
 
   data = data.filter(item => item.id !== id);
 
@@ -626,7 +758,7 @@ function renderAnggaran() {
 function backupData() {
   const paket = {
     app: "catatan-keuangan",
-    versi: "3.5",
+    versi: "3.6",
     dibuat: new Date().toISOString(),
     pengeluaran: data,
     anggaran: anggaran,
