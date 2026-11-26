@@ -1014,8 +1014,12 @@ function renderRiwayatHarga() {
     : new Date(ms).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
   const catatEmas = pilihRiwayat === "emas"
-    ? `Riwayat emas memakai token PAX Gold (1 token = 1 troy ounce emas) dibagi 31,1 untuk per gram, jadi bisa sedikit berbeda dari harga di atas.`
+    ? `Riwayat emas memakai token PAX Gold (1 token = 1 troy ounce emas) dibagi 31,1 untuk per gram, jadi bisa sedikit berbeda dari harga emas di tab Aset.`
     : "";
+
+  const sumber = pilihRiwayat === "emas"
+    ? `Sumber data: <a href="https://www.coingecko.com/id/koin/pax-gold" target="_blank" rel="noopener">CoinGecko</a>, harga PAX Gold dalam rupiah.`
+    : `Sumber data: <a href="https://www.coingecko.com/id/koin/${ID_RIWAYAT[pilihRiwayat]}" target="_blank" rel="noopener">CoinGecko</a>, harga ${namaBagian(pilihRiwayat)} dalam rupiah.`;
 
   gambarGaris(el, titik, {
     warna: WARNA[pilihRiwayat] || "--seri-1",
@@ -1029,7 +1033,8 @@ function renderRiwayatHarga() {
         Diperbarui ${umur(data.waktu)}.
         ${gagalRiwayat[kunci] ? "Pembaruan terakhir gagal, ini data yang tersimpan." : ""}
         ${catatEmas}
-      </p>`,
+      </p>
+      <p class="catatan-kecil sumber-data">${sumber}</p>`,
     tabel: [...titik].reverse().map(p => [waktuTeks(p.ms), rupiah(p.v)])
   });
 }

@@ -1102,3 +1102,6 @@ transition:none !important;
 animation:none !important;
 }
 }
+
+.sumber-data{margin-top:2px}
+.sumber-data a{color:var(--acc,#2f6fe4);text-decoration:underline;text-underline-offset:2px}
