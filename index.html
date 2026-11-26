@@ -56,6 +56,19 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 <section class="blok">
 <div class="blok-kepala">
+<h2>Harga emas dan crypto</h2>
+<div class="segmen kecil" role="group" aria-label="Periode riwayat harga">
+<button type="button" id="h7" onclick="setHariRiwayat(7)">7 hari</button>
+<button type="button" id="h30" class="aktif" onclick="setHariRiwayat(30)">30 hari</button>
+<button type="button" id="h90" onclick="setHariRiwayat(90)">90 hari</button>
+</div>
+</div>
+<div id="pilihRiwayat" class="chips" style="margin-bottom:6px"></div>
+<div id="grafikHarga"></div>
+</section>
+
+<section class="blok">
+<div class="blok-kepala">
 <h2>Anggaran bulan ini</h2>
 </div>
 <div id="anggaranBulan"></div>
@@ -227,19 +240,6 @@ placeholder="Dipakai untuk hitung untung/rugi">
 </div>
 </div>
 <div id="grafikGaris"></div>
-</section>
-
-<section class="blok">
-<div class="blok-kepala">
-<h2>Riwayat harga</h2>
-<div class="segmen kecil" role="group" aria-label="Periode riwayat harga">
-<button type="button" id="h7" onclick="setHariRiwayat(7)">7 hari</button>
-<button type="button" id="h30" class="aktif" onclick="setHariRiwayat(30)">30 hari</button>
-<button type="button" id="h90" onclick="setHariRiwayat(90)">90 hari</button>
-</div>
-</div>
-<div id="pilihRiwayat" class="chips" style="margin-bottom:6px"></div>
-<div id="grafikHarga"></div>
 </section>
 
 <section class="blok" id="blokModal">

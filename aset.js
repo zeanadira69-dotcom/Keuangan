@@ -1177,4 +1177,5 @@ function hapusAset(id) {
   pasangTipUmum();
   renderPilihRiwayat();
   renderAset();
+  muatRiwayatHarga(false);
 })();

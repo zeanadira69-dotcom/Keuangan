@@ -188,10 +188,13 @@ function showPage(pageId) {
     filterRiwayat();
   }
 
+  if (pageId === "dashboardPage" && typeof muatRiwayatHarga === "function") {
+    muatRiwayatHarga(false);
+  }
+
   if (pageId === "asetPage" && typeof renderAset === "function") {
     renderAset();
     perbaruiHarga(false);
-    muatRiwayatHarga(false);
   }
 
   window.scrollTo(0, 0);
