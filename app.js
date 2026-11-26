@@ -191,6 +191,7 @@ function showPage(pageId) {
   if (pageId === "asetPage" && typeof renderAset === "function") {
     renderAset();
     perbaruiHarga(false);
+    muatRiwayatHarga(false);
   }
 
   window.scrollTo(0, 0);
@@ -758,7 +759,7 @@ function renderAnggaran() {
 function backupData() {
   const paket = {
     app: "catatan-keuangan",
-    versi: "3.6",
+    versi: "3.7",
     dibuat: new Date().toISOString(),
     pengeluaran: data,
     anggaran: anggaran,

@@ -8,14 +8,9 @@
 
 <title>Catatan Keuangan</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#10261D">
+<meta name="theme-color" content="#e6ebf2">
+<script src="tema.js"></script>
 <link rel="stylesheet" href="style.css">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link
-rel="stylesheet"
-href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
 
 <link
 rel="stylesheet"
@@ -25,6 +20,10 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
 <body>
 
+<div class="orb o1" aria-hidden="true"></div>
+<div class="orb o2" aria-hidden="true"></div>
+<div class="orb o3" aria-hidden="true"></div>
+
 <main>
 
 <!-- HOME -->
@@ -32,6 +31,9 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 <section id="dashboardPage" class="page active">
 
 <header class="judul-halaman">
+<div class="logo" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18a2 2 0 0 1 2 2v1"/><path d="M3 7.5V17a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5.5A2.5 2.5 0 0 1 3 6.5"/><circle cx="16.5" cy="14" r="1.2" fill="currentColor"/></svg>
+</div>
 <h1>Catatan Keuangan</h1>
 <p id="tanggalHariIni"></p>
 </header>
@@ -227,6 +229,19 @@ placeholder="Dipakai untuk hitung untung/rugi">
 <div id="grafikGaris"></div>
 </section>
 
+<section class="blok">
+<div class="blok-kepala">
+<h2>Riwayat harga</h2>
+<div class="segmen kecil" role="group" aria-label="Periode riwayat harga">
+<button type="button" id="h7" onclick="setHariRiwayat(7)">7 hari</button>
+<button type="button" id="h30" class="aktif" onclick="setHariRiwayat(30)">30 hari</button>
+<button type="button" id="h90" onclick="setHariRiwayat(90)">90 hari</button>
+</div>
+</div>
+<div id="pilihRiwayat" class="chips" style="margin-bottom:6px"></div>
+<div id="grafikHarga"></div>
+</section>
+
 <section class="blok" id="blokModal">
 <div class="blok-kepala">
 <h2>Modal dan nilai sekarang</h2>
@@ -261,6 +276,17 @@ placeholder="Dipakai untuk hitung untung/rugi">
 <header class="judul-halaman">
 <h1>Setelan</h1>
 </header>
+
+<section class="blok">
+<div class="blok-kepala">
+<h2>Tampilan</h2>
+</div>
+<div class="segmen" role="group" aria-label="Tema tampilan">
+<button type="button" id="tmAuto" onclick="KTema.set('auto')">Otomatis</button>
+<button type="button" id="tmTerang" onclick="KTema.set('light')">Terang</button>
+<button type="button" id="tmGelap" onclick="KTema.set('dark')">Gelap</button>
+</div>
+</section>
 
 <section class="blok">
 <div class="blok-kepala">
@@ -307,7 +333,7 @@ hidden>
 </section>
 
 <p class="footer-info">
-Catatan Keuangan v3.6<br>
+Catatan Keuangan v3.7<br>
 Dibuat oleh Edy Putra. Semoga bermanfaat 🤙
 </p>
 

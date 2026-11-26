@@ -368,13 +368,11 @@ function renderAset() {
         <div class="chip-ikon"><i class="fa-solid fa-${ikonAset}"></i></div>
         <div class="baris-isi">
           <div class="baris-judul">${nama}</div>
+          <div class="angka" style="font-size:16px">${nilai === null ? "Harga belum ada" : rupiah(nilai)}</div>
           <div class="baris-sub lipat-baris">${formatJumlah(item.jumlah)} ${satuanTeks}${
             item.modal > 0 ? ", modal " + rupiah(item.modal) : ""
           }</div>
           ${untungRugi}
-        </div>
-        <div class="baris-kanan">
-          <div class="angka">${nilai === null ? "Harga belum ada" : rupiah(nilai)}</div>
         </div>
         <button class="ikon-tombol" aria-label="Hapus aset ${nama}"
           onclick="hapusAset(${item.id})">
@@ -544,7 +542,7 @@ function sembunyiTip() {
 
 function pasangTipUmum() {
   document.addEventListener("click", e => {
-    if (e.target.closest && e.target.closest("#svgGaris")) return;
+    if (e.target.closest && e.target.closest(".grafik-garis")) return;
     const el = e.target.closest && e.target.closest("[data-tip]");
     if (!el) { sembunyiTip(); return; }
     const r = el.getBoundingClientRect();
@@ -553,7 +551,7 @@ function pasangTipUmum() {
 
   document.addEventListener("pointermove", e => {
     if (e.pointerType !== "mouse") return;
-    if (e.target.closest && e.target.closest("#svgGaris")) return;
+    if (e.target.closest && e.target.closest(".grafik-garis")) return;
     const el = e.target.closest && e.target.closest("[data-tip]");
     if (el) tampilTip(el.dataset.tip, e.clientX, e.clientY);
     else sembunyiTip();
@@ -645,39 +643,48 @@ function tickBagus(min, max, jumlah) {
   return { tick, bawah, atas };
 }
 
+function labelSumbuY(tick) {
+  const maks = Math.max(...tick.map(Math.abs));
+  const [bagi, satuan] =
+    maks >= 1e9 ? [1e9, "M"] :
+    maks >= 1e6 ? [1e6, "jt"] :
+    maks >= 1e3 ? [1e3, "rb"] : [1, ""];
+
+  // pakai desimal paling sedikit yang membuat semua label berbeda
+  for (let d = 0; d <= 2; d++) {
+    const label = tick.map(v =>
+      (v < 0 ? "−" : "") +
+      Math.abs(v / bagi).toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d }) +
+      (satuan ? " " + satuan : "")
+    );
+
+    if (new Set(label).size === label.length) return label;
+  }
+
+  return tick.map(v => Math.round(v).toLocaleString("id-ID"));
+}
+
+function labelTglMs(ms) {
+  return new Date(ms).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
 function labelTgl(iso) {
   return dariIso(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
 }
 
-function renderGaris() {
-  const el = document.getElementById("grafikGaris");
-  if (!el) return;
-
-  let titik = snapshot;
-
-  if (periode > 0) {
-    const batas = new Date();
-    batas.setDate(batas.getDate() - periode);
-    const batasIso = formatTanggalIso(batas);
-    titik = snapshot.filter(s => s.t >= batasIso);
-  }
-
-  if (titik.length < 2) {
-    el.innerHTML = `<p class="kosong">${
-      snapshot.length < 2
-        ? "Grafik terisi otomatis setiap hari kamu membuka tab Aset dengan harga terbaru. Buka lagi besok untuk melihat perubahannya."
-        : "Belum cukup data pada periode ini. Coba pilih periode yang lebih panjang."
-    }</p>`;
-    return;
-  }
-
+/*
+  Grafik garis umum.
+  titik : [{ ms, v, ... }] terurut waktu
+  o     : { warna, aria, tip(p), akhir, catatan, tabel:[[label, nilai]] }
+*/
+function gambarGaris(el, titik, o) {
   const W = 360, H = 210, kiri = 46, kanan = 18, atas = 26, bawah = 28;
   const lebar = W - kiri - kanan;
   const tinggi = H - atas - bawah;
+  const warna = o.warna || "--seri-1";
 
-  const nilai = titik.map(p => p.total);
-  let min = Math.min(...nilai);
-  let max = Math.max(...nilai);
+  let min = Math.min(...titik.map(p => p.v));
+  let max = Math.max(...titik.map(p => p.v));
 
   if (min === max) {
     const sela = Math.max(Math.abs(min) * 0.05, 1);
@@ -686,17 +693,15 @@ function renderGaris() {
   }
 
   const skala = tickBagus(min, max, 4);
-  const t0 = dariIso(titik[0].t).getTime();
-  const t1 = dariIso(titik[titik.length - 1].t).getTime();
+  const labelY = labelSumbuY(skala.tick);
+  const t0 = titik[0].ms;
+  const t1 = titik[titik.length - 1].ms;
 
-  const px = p => t1 === t0
-    ? kiri + lebar / 2
-    : kiri + ((dariIso(p.t).getTime() - t0) / (t1 - t0)) * lebar;
-
+  const px = p => t1 === t0 ? kiri + lebar / 2 : kiri + ((p.ms - t0) / (t1 - t0)) * lebar;
   const py = v => atas + tinggi - ((v - skala.bawah) / (skala.atas - skala.bawah)) * tinggi;
 
   const garisPath = titik
-    .map((p, i) => (i ? "L" : "M") + px(p).toFixed(1) + " " + py(p.total).toFixed(1))
+    .map((p, i) => (i ? "L" : "M") + px(p).toFixed(1) + " " + py(p.v).toFixed(1))
     .join(" ");
 
   const dasar = (atas + tinggi).toFixed(1);
@@ -704,11 +709,11 @@ function renderGaris() {
     garisPath +
     ` L${px(titik[titik.length - 1]).toFixed(1)} ${dasar} L${px(titik[0]).toFixed(1)} ${dasar} Z`;
 
-  const grid = skala.tick.map(v => `
+  const grid = skala.tick.map((v, i) => `
     <line x1="${kiri}" x2="${W - kanan}" y1="${py(v).toFixed(1)}" y2="${py(v).toFixed(1)}"
       style="stroke:var(--grid)" stroke-width="1"/>
     <text x="${kiri - 8}" y="${(py(v) + 4).toFixed(1)}" text-anchor="end"
-      font-size="11" style="fill:var(--redup)">${ringkas(v)}</text>
+      font-size="11" style="fill:var(--redup)">${labelY[i]}</text>
   `).join("");
 
   const awalP = titik[0];
@@ -717,54 +722,49 @@ function renderGaris() {
   const jarakHari = (t1 - t0) / 86400000;
 
   const labelX = [
-    `<text x="${kiri}" y="${H - 8}" text-anchor="start" font-size="11" style="fill:var(--redup)">${labelTgl(awalP.t)}</text>`,
+    `<text x="${kiri}" y="${H - 8}" text-anchor="start" font-size="11" style="fill:var(--redup)">${labelTglMs(awalP.ms)}</text>`,
     jarakHari >= 4
-      ? `<text x="${px(tengahP).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" style="fill:var(--redup)">${labelTgl(tengahP.t)}</text>`
+      ? `<text x="${px(tengahP).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" style="fill:var(--redup)">${labelTglMs(tengahP.ms)}</text>`
       : "",
-    `<text x="${W - kanan}" y="${H - 8}" text-anchor="end" font-size="11" style="fill:var(--redup)">${labelTgl(akhirP.t)}</text>`
+    `<text x="${W - kanan}" y="${H - 8}" text-anchor="end" font-size="11" style="fill:var(--redup)">${labelTglMs(akhirP.ms)}</text>`
   ].join("");
 
   const ex = px(akhirP).toFixed(1);
-  const ey = py(akhirP.total).toFixed(1);
+  const ey = py(akhirP.v).toFixed(1);
 
-  const naik = akhirP.total - awalP.total;
-  const ringkasanTeks =
-    `Total kekayaan dari ${rupiah(awalP.total)} pada ${labelTgl(awalP.t)} ` +
-    `menjadi ${rupiah(akhirP.total)} pada ${labelTgl(akhirP.t)}, ` +
-    (naik >= 0 ? "naik " : "turun ") + rupiah(Math.abs(naik));
-
-  const tabel = [...titik].reverse().slice(0, 90).map(p => `
-    <tr><td>${labelTgl(p.t)}</td><td>${rupiah(p.total)}</td></tr>
+  const tabel = [...(o.tabel || [])].slice(0, 90).map(r => `
+    <tr><td>${r[0]}</td><td>${r[1]}</td></tr>
   `).join("");
 
   el.innerHTML = `
-    <svg id="svgGaris" class="grafik-garis" viewBox="0 0 ${W} ${H}"
-      role="img" aria-label="${escapeHtml(ringkasanTeks)}">
+    <svg class="grafik-garis" viewBox="0 0 ${W} ${H}"
+      role="img" aria-label="${escapeHtml(o.aria)}">
       ${grid}
-      <path d="${areaPath}" style="fill:var(--seri-1)" opacity="0.1"/>
-      <path d="${garisPath}" fill="none" style="stroke:var(--seri-1)"
+      <path d="${areaPath}" style="fill:var(${warna})" opacity="0.1"/>
+      <path d="${garisPath}" fill="none" style="stroke:var(${warna})"
         stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${labelX}
-      <line id="garisSilang" x1="0" x2="0" y1="${atas}" y2="${atas + tinggi}"
+      <line class="g-silang" x1="0" x2="0" y1="${atas}" y2="${atas + tinggi}"
         style="stroke:var(--redup)" stroke-width="1" opacity="0"/>
-      <circle id="titikSilang" r="5" cx="0" cy="0" style="fill:var(--seri-1);stroke:var(--kertas)"
+      <circle class="g-titik" r="5" cx="0" cy="0" style="fill:var(${warna});stroke:var(--kertas)"
         stroke-width="2" opacity="0"/>
-      <circle cx="${ex}" cy="${ey}" r="5" style="fill:var(--seri-1);stroke:var(--kertas)" stroke-width="2"/>
+      <circle cx="${ex}" cy="${ey}" r="5" style="fill:var(${warna});stroke:var(--kertas)" stroke-width="2"/>
       <text x="${Math.min(Number(ex), W - kanan)}" y="${(Number(ey) - 12).toFixed(1)}"
-        text-anchor="end" font-size="12" font-weight="700" style="fill:var(--teks)">${rupiah(akhirP.total)}</text>
-      <rect id="lapisSentuh" x="${kiri}" y="${atas}" width="${lebar}" height="${tinggi}" fill="transparent"/>
+        text-anchor="end" font-size="12" font-weight="700" style="fill:var(--teks)">${escapeHtml(o.akhir)}</text>
+      <rect class="g-lapis" x="${kiri}" y="${atas}" width="${lebar}" height="${tinggi}" fill="transparent"/>
     </svg>
-    <p class="catatan-kecil" style="margin-top:6px">Total kas ditambah nilai aset, dalam rupiah. Sentuh grafik untuk melihat nilai tiap hari.</p>
+    ${o.catatan || ""}
+    ${tabel ? `
     <details class="tabel-data">
       <summary>Lihat sebagai tabel</summary>
       <table><tbody>${tabel}</tbody></table>
-    </details>
+    </details>` : ""}
   `;
 
-  const svg = document.getElementById("svgGaris");
-  const lapis = document.getElementById("lapisSentuh");
-  const garis = document.getElementById("garisSilang");
-  const dot = document.getElementById("titikSilang");
+  const svg = el.querySelector(".grafik-garis");
+  const lapis = el.querySelector(".g-lapis");
+  const garis = el.querySelector(".g-silang");
+  const dot = el.querySelector(".g-titik");
 
   const sorot = e => {
     const kotak = svg.getBoundingClientRect();
@@ -779,7 +779,7 @@ function renderGaris() {
     });
 
     const x = px(terdekat);
-    const y = py(terdekat.total);
+    const y = py(terdekat.v);
 
     garis.setAttribute("x1", x);
     garis.setAttribute("x2", x);
@@ -789,8 +789,7 @@ function renderGaris() {
     dot.setAttribute("opacity", "1");
 
     tampilTip(
-      `<b>${dariIso(terdekat.t).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</b>` +
-      `Total ${rupiah(terdekat.total)}<br>Kas ${rupiah(terdekat.kas)}, aset ${rupiah(terdekat.aset)}`,
+      o.tip(terdekat),
       kotak.left + (x / W) * kotak.width,
       kotak.top + (y / H) * kotak.height
     );
@@ -808,6 +807,230 @@ function renderGaris() {
   // tooltip dibiarkan tampil sebentar dan hilang sendiri.
   lapis.addEventListener("pointerleave", e => {
     if (e.pointerType === "mouse") lepas();
+  });
+}
+
+function persenUbah(awal, akhir) {
+  if (!(awal > 0)) return "";
+  const p = ((akhir - awal) / awal) * 100;
+
+  return `<b class="${p >= 0 ? "masuk" : "keluar"}">${p >= 0 ? "+" : "−"}${Math.abs(p)
+    .toLocaleString("id-ID", { maximumFractionDigits: 1 })}%</b>`;
+}
+
+/* ---------- perkembangan kekayaan (dari catatan harian) ---------- */
+
+function renderGaris() {
+  const el = document.getElementById("grafikGaris");
+  if (!el) return;
+
+  let daftar = snapshot;
+
+  if (periode > 0) {
+    const batas = new Date();
+    batas.setDate(batas.getDate() - periode);
+    const batasIso = formatTanggalIso(batas);
+    daftar = snapshot.filter(s => s.t >= batasIso);
+  }
+
+  if (daftar.length < 2) {
+    el.innerHTML = `<p class="kosong">${
+      snapshot.length < 2
+        ? "Grafik terisi otomatis setiap hari kamu membuka tab Aset dengan harga terbaru. Buka lagi besok untuk melihat perubahannya."
+        : "Belum cukup data pada periode ini. Coba pilih periode yang lebih panjang."
+    }</p>`;
+    return;
+  }
+
+  const titik = daftar.map(s => ({ ...s, ms: dariIso(s.t).getTime(), v: s.total }));
+  const awalP = titik[0];
+  const akhirP = titik[titik.length - 1];
+  const naik = akhirP.v - awalP.v;
+
+  gambarGaris(el, titik, {
+    warna: "--seri-1",
+    aria:
+      `Total kekayaan dari ${rupiah(awalP.v)} pada ${labelTglMs(awalP.ms)} ` +
+      `menjadi ${rupiah(akhirP.v)} pada ${labelTglMs(akhirP.ms)}, ` +
+      (naik >= 0 ? "naik " : "turun ") + rupiah(Math.abs(naik)),
+    akhir: rupiah(akhirP.v),
+    tip: p =>
+      `<b>${dariIso(p.t).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</b>` +
+      `Total ${rupiah(p.total)}<br>Kas ${rupiah(p.kas)}, aset ${rupiah(p.aset)}`,
+    catatan: `<p class="catatan-kecil" style="margin-top:6px">Total kas ditambah nilai aset. Perubahan periode ini ${persenUbah(awalP.v, akhirP.v)}. Sentuh grafik untuk melihat nilai tiap hari.</p>`,
+    tabel: [...titik].reverse().map(p => [labelTglMs(p.ms), rupiah(p.v)])
+  });
+}
+
+/* ---------- riwayat harga (dari CoinGecko) ---------- */
+
+const RIWAYAT_KEY = "riwayatHarga";
+const TTL_RIWAYAT = 6 * 3600 * 1000;
+const GRAM_PER_OZ = 31.1034768;
+
+const ID_RIWAYAT = {
+  emas: "pax-gold",
+  bitcoin: "bitcoin",
+  ethereum: "ethereum",
+  solana: "solana",
+  binancecoin: "binancecoin",
+  dogecoin: "dogecoin"
+};
+
+let riwayatHarga = muatObjek(RIWAYAT_KEY);
+let pilihRiwayat = "emas";
+let hariRiwayat = 30;
+let sedangMuatRiwayat = false;
+let gagalRiwayat = {};
+
+function simpanRiwayat() {
+  try {
+    localStorage.setItem(RIWAYAT_KEY, JSON.stringify(riwayatHarga));
+  } catch (e) { /* cache boleh gagal */ }
+}
+
+function turunkanRiwayat(mentah, hari, kunci) {
+  const ember = hari <= 7 ? 6 * 3600 * 1000 : 24 * 3600 * 1000;
+  const geser = -new Date().getTimezoneOffset() * 60000;
+  const peta = {};
+
+  mentah.forEach(r => {
+    const ms = Number(r && r[0]);
+    let v = Number(r && r[1]);
+
+    if (!Number.isFinite(ms) || !(v > 0)) return;
+    if (kunci === "emas") v = v / GRAM_PER_OZ;
+
+    peta[Math.floor((ms + geser) / ember)] = [ms, v];   // simpan titik terakhir tiap ember
+  });
+
+  return Object.keys(peta)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map(k => peta[k])
+    .slice(-400);
+}
+
+function renderPilihRiwayat() {
+  const el = document.getElementById("pilihRiwayat");
+  if (!el) return;
+
+  el.innerHTML = Object.keys(ID_RIWAYAT).map(k => `
+    <button type="button" class="chip ${k === pilihRiwayat ? "aktif" : ""}"
+      aria-pressed="${k === pilihRiwayat}" onclick="pilihHarga('${k}')">
+      ${k === "emas" ? "Emas" : namaBagian(k).replace(/ \(.*\)/, "")}
+    </button>
+  `).join("");
+}
+
+function pilihHarga(k) {
+  if (!ID_RIWAYAT[k]) return;
+  pilihRiwayat = k;
+  renderPilihRiwayat();
+  muatRiwayatHarga(false);
+}
+
+function setHariRiwayat(hari) {
+  hariRiwayat = hari;
+
+  [["h7", 7], ["h30", 30], ["h90", 90]].forEach(([id, nilai]) => {
+    const tombol = document.getElementById(id);
+    if (tombol) tombol.classList.toggle("aktif", nilai === hari);
+  });
+
+  muatRiwayatHarga(false);
+}
+
+async function muatRiwayatHarga(paksa) {
+  const el = document.getElementById("grafikHarga");
+  if (!el) return;
+
+  const kunci = pilihRiwayat + "|" + hariRiwayat;
+  const ada = riwayatHarga[kunci];
+
+  if (ada && !paksa && Date.now() - ada.waktu < TTL_RIWAYAT) {
+    renderRiwayatHarga();
+    return;
+  }
+
+  if (sedangMuatRiwayat) return;
+
+  sedangMuatRiwayat = true;
+  gagalRiwayat[kunci] = false;
+
+  if (!ada) el.innerHTML = `<p class="kosong">Memuat riwayat harga...</p>`;
+
+  try {
+    const id = ID_RIWAYAT[pilihRiwayat];
+    const j = await ambilJson(
+      `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=idr&days=${hariRiwayat}`
+    );
+
+    const titik = turunkanRiwayat(Array.isArray(j && j.prices) ? j.prices : [], hariRiwayat, pilihRiwayat);
+    if (titik.length < 2) throw new Error("data riwayat kosong");
+
+    riwayatHarga[kunci] = { waktu: Date.now(), titik };
+    simpanRiwayat();
+  } catch (e) {
+    gagalRiwayat[kunci] = true;
+  } finally {
+    sedangMuatRiwayat = false;
+  }
+
+  // pilihan bisa berubah selama memuat
+  const kunciSekarang = pilihRiwayat + "|" + hariRiwayat;
+
+  if (kunciSekarang !== kunci && !riwayatHarga[kunciSekarang]) {
+    muatRiwayatHarga(false);
+    return;
+  }
+
+  renderRiwayatHarga();
+}
+
+function renderRiwayatHarga() {
+  const el = document.getElementById("grafikHarga");
+  if (!el) return;
+
+  const kunci = pilihRiwayat + "|" + hariRiwayat;
+  const data = riwayatHarga[kunci];
+
+  if (!data || !Array.isArray(data.titik) || data.titik.length < 2) {
+    el.innerHTML = `
+      <p class="pesan-galat">Riwayat harga belum bisa dimuat. Periksa koneksi internet, lalu coba lagi.</p>
+      <button class="tombol-teks" onclick="muatRiwayatHarga(true)">Muat ulang</button>
+    `;
+    return;
+  }
+
+  const titik = data.titik.map(([ms, v]) => ({ ms, v }));
+  const awalP = titik[0];
+  const akhirP = titik[titik.length - 1];
+  const nama = pilihRiwayat === "emas" ? "Emas per gram" : namaBagian(pilihRiwayat);
+  const dalamHari = hariRiwayat <= 7;
+
+  const waktuTeks = ms => dalamHari
+    ? new Date(ms).toLocaleString("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+    : new Date(ms).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+  const catatEmas = pilihRiwayat === "emas"
+    ? `Riwayat emas memakai token PAX Gold (1 token = 1 troy ounce emas) dibagi 31,1 untuk per gram, jadi bisa sedikit berbeda dari harga di atas.`
+    : "";
+
+  gambarGaris(el, titik, {
+    warna: WARNA[pilihRiwayat] || "--seri-1",
+    aria:
+      `${nama} dari ${rupiah(awalP.v)} pada ${labelTglMs(awalP.ms)} menjadi ${rupiah(akhirP.v)} pada ${labelTglMs(akhirP.ms)}`,
+    akhir: rupiah(akhirP.v),
+    tip: p => `<b>${waktuTeks(p.ms)}</b>${nama} ${rupiah(p.v)}`,
+    catatan: `
+      <p class="catatan-kecil" style="margin-top:6px">
+        ${nama}: perubahan ${hariRiwayat} hari terakhir ${persenUbah(awalP.v, akhirP.v)}.
+        Diperbarui ${umur(data.waktu)}.
+        ${gagalRiwayat[kunci] ? "Pembaruan terakhir gagal, ini data yang tersimpan." : ""}
+        ${catatEmas}
+      </p>`,
+    tabel: [...titik].reverse().map(p => [waktuTeks(p.ms), rupiah(p.v)])
   });
 }
 
@@ -952,5 +1175,6 @@ function hapusAset(id) {
 
   setTipeAset("emas");
   pasangTipUmum();
+  renderPilihRiwayat();
   renderAset();
 })();

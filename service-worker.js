@@ -1,4 +1,4 @@
-const CACHE_NAME = "catatan-keuangan-v3.6";
+const CACHE_NAME = "catatan-keuangan-v3.7";
 
 const FILES_TO_CACHE = [
   "./",
@@ -6,6 +6,7 @@ const FILES_TO_CACHE = [
   "./style.css",
   "./app.js",
   "./aset.js",
+  "./tema.js",
   "./manifest.json"
 ];
 
