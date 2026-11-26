@@ -1,4 +1,4 @@
-const CACHE_NAME = "catatan-keuangan-v3.7.1";
+const CACHE_NAME = "catatan-keuangan-v3.7.2";
 
 const FILES_TO_CACHE = [
   "./",
